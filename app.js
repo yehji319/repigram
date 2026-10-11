@@ -87,6 +87,10 @@ function metaLine(r) {
   return [r.time && `⏱ ${esc(r.time)}`, r.servings && `👤 ${esc(r.servings)}`].filter(Boolean).join(" · ");
 }
 
+// ---------- 브랜드 아이콘 ----------
+const YOUTUBE_ICON = `<svg class="brand-icon" viewBox="0 0 28 20" role="img" aria-label="YouTube"><rect width="28" height="20" rx="5" fill="#FF0000"/><path d="M11 5.5v9l8-4.5z" fill="#fff"/></svg>`;
+const INSTAGRAM_ICON = `<svg class="brand-icon" viewBox="0 0 24 24" role="img" aria-label="Instagram"><defs><radialGradient id="ig-grad" cx="0.3" cy="1.07" r="1.2"><stop offset="0" stop-color="#FFDD55"/><stop offset="0.1" stop-color="#FFDD55"/><stop offset="0.5" stop-color="#FF543E"/><stop offset="1" stop-color="#C837AB"/></radialGradient></defs><rect width="24" height="24" rx="6" fill="url(#ig-grad)"/><rect x="5" y="5" width="14" height="14" rx="4.2" fill="none" stroke="#fff" stroke-width="1.8"/><circle cx="12" cy="12" r="3.4" fill="none" stroke="#fff" stroke-width="1.8"/><circle cx="16.4" cy="7.6" r="1.1" fill="#fff"/></svg>`;
+
 // ---------- 로그인 ----------
 function renderSetupNeeded() {
   app.innerHTML = `
@@ -105,8 +109,8 @@ function renderLogin() {
       <p class="eyebrow">찾았던 요리법을 한곳에</p>
       <h1>나만의 레시피북<img src="wordmark.png" alt="레피그램" class="hero-wordmark"></h1>
       <ul class="features">
-        <li><b>📸</b>사진·캡처를 올리면 레시피로 정리</li>
-        <li><b>▶️</b>유튜브 설명란까지 함께 분석</li>
+        <li><b>${INSTAGRAM_ICON}</b>사진·캡처를 올리면 레시피로 정리</li>
+        <li><b>${YOUTUBE_ICON}</b>유튜브 설명란까지 함께 분석</li>
         <li><b>🎬</b>프리미엄: 영상을 직접 보고 정리</li>
         <li><b>☁️</b>어느 기기에서든 같은 레시피북</li>
       </ul>

@@ -167,7 +167,8 @@ code { background: var(--bg-soft); padding: 2px 6px; border-radius: 6px; }
   background: var(--surface); border-radius: 20px; padding: 16px 18px; box-shadow: var(--shadow);
   font-weight: 600; font-size: .95rem; line-height: 1.45;
 }
-.features li b { display: block; font-size: 1.6rem; margin-bottom: 4px; }
+.features li b { display: flex; align-items: center; height: 34px; font-size: 1.6rem; margin-bottom: 4px; }
+.brand-icon { height: 28px; width: auto; }
 @media (max-width: 420px) { .features { gap: 10px; } .features li { padding: 14px; font-size: .88rem; } }
 .consent { font-size: .88rem; margin-top: 18px !important; }
 
