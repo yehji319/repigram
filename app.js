@@ -1,12 +1,16 @@
+import { supabase, configured } from "./supabase.js";
 import { db } from "./db.js";
-import { analyzeRecipe, aiEnabled, MAX_AI_IMAGES } from "./ai.js";
+import { analyzeRecipe, analyzeVideo, getUsage, aiEnabled, MAX_AI_IMAGES } from "./ai.js";
+import { CONTACT_EMAIL } from "./config.js";
 
 const app = document.getElementById("app");
 const CATEGORIES = ["한식", "양식", "중식", "일식", "분식", "디저트", "음료", "기타"];
 const ALL = "전체";
 const FAV = "♥ 즐겨찾기";
 const ui = { query: "", category: ALL };
+let session = null;
 let recipes = [];
+let usage = null; // { plan, ai: { used, limit }, video: { used, limit } }
 
 // ---------- 유틸 ----------
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => (
@@ -18,6 +22,7 @@ const safeUrl = (u) => {
 };
 const youtubeId = (u) => (u || "").match(/(?:youtu\.be\/|[?&]v=|shorts\/|embed\/|live\/)([\w-]{11})/)?.[1] || "";
 const toLines = (s) => s.split("\n").map((x) => x.trim()).filter(Boolean);
+const isPremium = () => usage?.plan === "premium";
 
 let toastTimer;
 function toast(msg) {
@@ -25,14 +30,27 @@ function toast(msg) {
   el.textContent = msg;
   el.classList.add("show");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove("show"), 2500);
+  toastTimer = setTimeout(() => el.classList.remove("show"), 2800);
 }
 
 async function reload() {
-  recipes = (await db.all()).sort((a, b) => b.updatedAt - a.updatedAt);
+  recipes = await db.all();
 }
 
-// 사진은 최대 1280px JPEG로 줄여서 저장 (용량 절약)
+async function refreshUsage() {
+  if (!aiEnabled()) return;
+  try { usage = await getUsage(); } catch { usage = null; }
+}
+
+const blobToDataUrl = (blob) => new Promise((resolve, reject) => {
+  const r = new FileReader();
+  r.onload = () => resolve(r.result);
+  r.onerror = reject;
+  r.readAsDataURL(blob);
+});
+const srcToDataUrl = async (src) => (src.startsWith("data:") ? src : blobToDataUrl(await (await fetch(src)).blob()));
+
+// 사진은 최대 1280px JPEG로 줄여서 저장 (용량·AI 비용 절약)
 async function resizeImage(file, max = 1280) {
   const url = URL.createObjectURL(file);
   try {
@@ -54,7 +72,7 @@ async function resizeImage(file, max = 1280) {
 }
 
 function thumbOf(r) {
-  if (r.photos?.length) return `<img src="${r.photos[0]}" alt="" loading="lazy">`;
+  if (r.photos?.[0]?.src) return `<img src="${esc(r.photos[0].src)}" alt="" loading="lazy">`;
   const yt = youtubeId(r.youtube);
   if (yt) return `<img src="https://img.youtube.com/vi/${yt}/hqdefault.jpg" alt="" loading="lazy">`;
   return `<span class="thumb-emoji">🍽️</span>`;
@@ -67,6 +85,45 @@ function favButton(r) {
 
 function metaLine(r) {
   return [r.time && `⏱ ${esc(r.time)}`, r.servings && `👤 ${esc(r.servings)}`].filter(Boolean).join(" · ");
+}
+
+// ---------- 로그인 ----------
+function renderSetupNeeded() {
+  app.innerHTML = `
+    <section class="welcome">
+      <div class="welcome-emoji">🛠️</div>
+      <h1>서버 설정이 필요해요</h1>
+      <p><code>config.js</code>에 Supabase 주소와 공개 키를 넣어 주세요.</p>
+    </section>`;
+}
+
+function renderLogin() {
+  app.innerHTML = `
+    <section class="welcome">
+      <img src="logo.png" alt="레피그램 캐릭터" class="hero-logo">
+      <div class="bubble">사진만 올리면 AI가 정리해요!</div>
+      <p class="eyebrow">찾았던 요리법을 한곳에</p>
+      <h1>나만의 레시피북<br>레피그램</h1>
+      <ul class="features">
+        <li><b>📸</b>사진·캡처를 올리면 레시피로 정리</li>
+        <li><b>▶️</b>유튜브 설명란까지 함께 분석</li>
+        <li><b>🎬</b>프리미엄: 영상을 직접 보고 정리</li>
+        <li><b>☁️</b>어느 기기에서든 같은 레시피북</li>
+      </ul>
+      <button class="btn google big" id="google-login">
+        <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>
+        Google 계정으로 시작하기
+      </button>
+      <p class="consent">로그인하면 <a href="terms.html">이용약관</a>에 동의하고,
+        <a href="privacy.html">개인정보처리방침</a>을 확인한 것으로 봐요.</p>
+    </section>`;
+  document.getElementById("google-login").onclick = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: location.origin + location.pathname },
+    });
+    if (error) toast("로그인을 시작하지 못했어요. 다시 시도해 주세요.");
+  };
 }
 
 // ---------- 목록 ----------
@@ -91,8 +148,8 @@ function renderHome() {
   if (!recipes.length) {
     app.innerHTML = `
       <section class="welcome">
-        <div class="welcome-emoji">📸🍳📖</div>
-        <h1>나만의 레시피북을 시작해 보세요</h1>
+        <img src="logo.png" alt="" class="hero-logo">
+        <h1>첫 레시피를 저장해 보세요</h1>
         <p>요리 사진이나 유튜브·인스타그램 캡처를 올리면<br>레시피로 깔끔하게 정리해 둘 수 있어요.</p>
         <div class="welcome-actions">
           <a href="#/new" class="btn primary">＋ 첫 레시피 추가하기</a>
@@ -144,9 +201,10 @@ function renderRecipe(id) {
   app.innerHTML = `
     <a href="#/" class="back">← 레시피북</a>
     <article class="detail">
-      ${r.photos?.length ? `<div class="gallery">${r.photos.map((p) => `<img src="${p}" alt="">`).join("")}</div>` : ""}
+      ${r.photos?.length ? `<div class="gallery">${r.photos.map((p) => `<img src="${esc(p.src)}" alt="">`).join("")}</div>` : ""}
       <div class="detail-head">
         ${r.category ? `<span class="tag">${esc(r.category)}</span>` : ""}
+        ${r.aiGenerated ? `<span class="badge">✨ AI 정리</span>` : ""}
         <h1>${esc(r.title)} ${favButton(r)}</h1>
         <div class="meta">${metaLine(r)}</div>
       </div>
@@ -159,6 +217,7 @@ function renderRecipe(id) {
               ${yt ? `<img src="https://img.youtube.com/vi/${yt}/mqdefault.jpg" alt="">` : ""}<span>▶ 유튜브에서 보기</span></a>` : ""}
             ${igUrl ? `<a href="${esc(igUrl)}" target="_blank" rel="noopener" class="source ig"><span>📷 인스타그램에서 보기</span></a>` : ""}
           </div>
+          <p class="notice">원본 영상·게시물의 저작권은 원작자에게 있어요. 원작자를 응원하려면 원본에서 좋아요와 구독을 눌러 주세요.</p>
         </section>` : ""}
 
       <div class="detail-body">
@@ -177,6 +236,7 @@ function renderRecipe(id) {
       </div>
 
       ${r.memo ? `<section class="memo"><h2>📝 메모</h2><p>${esc(r.memo)}</p></section>` : ""}
+      ${r.aiGenerated ? `<p class="notice ai-notice">✨ AI가 정리한 레시피예요. 분량이나 재료가 틀릴 수 있으니, 특히 알레르기 재료는 원본과 꼭 확인해 주세요.</p>` : ""}
 
       <div class="detail-actions">
         <a href="#/edit/${encodeURIComponent(r.id)}" class="btn">✏️ 수정</a>
@@ -186,43 +246,70 @@ function renderRecipe(id) {
 
   document.getElementById("delete").onclick = async () => {
     if (!confirm(`'${r.title}' 레시피를 삭제할까요?`)) return;
-    await db.remove(r.id);
-    await reload();
-    toast("삭제했어요.");
-    location.hash = "#/";
+    try {
+      await db.remove(r);
+      await reload();
+      toast("삭제했어요.");
+      location.hash = "#/";
+    } catch {
+      toast("삭제하지 못했어요. 다시 시도해 주세요.");
+    }
   };
 }
 
 // ---------- 추가/수정 ----------
+function aiBoxHtml() {
+  if (!aiEnabled()) return `<p class="hint">AI 자동 정리 기능을 준비하고 있어요. 지금은 직접 입력해 주세요.</p>`;
+  const ai = usage ? `오늘 남은 횟수 ${Math.max(0, usage.ai.limit - usage.ai.used)}/${usage.ai.limit}` : "";
+  const video = usage && isPremium() ? `이번 달 남은 횟수 ${Math.max(0, usage.video.limit - usage.video.used)}/${usage.video.limit}` : "";
+  return `
+    <p class="hint">올린 사진(최대 ${MAX_AI_IMAGES}장), 아래 메모, 유튜브 링크의 설명란을 함께 분석해 레시피 칸을 채워 드려요.</p>
+    <textarea id="ai-text" rows="3" placeholder="인스타그램 캡션이나 영상 설명을 붙여 넣으면 함께 분석해요 (선택)"></textarea>
+    <div class="ai-actions">
+      <button type="button" class="btn ai" id="ai-btn">✨ 사진·글로 정리</button>
+      <span class="hint">${ai}</span>
+    </div>
+    <div class="ai-actions">
+      ${isPremium()
+        ? `<button type="button" class="btn ai" id="video-btn">🎬 유튜브 영상 분석</button><span class="hint">${video}</span>`
+        : `<button type="button" class="btn" disabled>🔒 유튜브 영상 분석</button><span class="hint">프리미엄 전용: 영상을 직접 보고 말로 설명한 레시피까지 정리해요 (월 30개)</span>`}
+    </div>
+    <p class="hint" id="ai-status" role="status"></p>
+    <p class="notice">AI 정리 결과는 틀릴 수 있어요. 저장하기 전에 원본과 비교해 확인해 주세요.</p>`;
+}
+
 function renderForm(id) {
   const existing = id ? recipes.find((x) => x.id === id) : null;
   if (id && !existing) return renderNotFound();
-  const draft = { photos: [...(existing?.photos || [])] };
+  const draft = {
+    id: existing?.id || crypto.randomUUID(),
+    photos: [...(existing?.photos || [])],
+    aiGenerated: existing?.aiGenerated || false,
+  };
 
   app.innerHTML = `
     <a href="${existing ? `#/recipe/${encodeURIComponent(existing.id)}` : "#/"}" class="back">← 돌아가기</a>
     <h1 class="page-title">${existing ? "레시피 수정" : "새 레시피"}</h1>
     <form id="form" class="form" novalidate>
       <section class="panel">
-        <h2>📸 사진</h2>
-        <p class="hint">요리 사진이나 유튜브·인스타그램 캡처를 올려 주세요. 여러 장도 괜찮아요.</p>
+        <h2>📥 가져오기</h2>
+        <label>유튜브 링크<input name="youtube" type="url" inputmode="url" placeholder="https://youtube.com/..."></label>
+        <label>인스타그램 링크<input name="instagram" type="url" inputmode="url" placeholder="https://instagram.com/..."></label>
+
+        <h3 class="sub">📸 사진</h3>
+        <p class="hint">직접 찍은 사진이나 개인 보관용 캡처를 올려 주세요. 올린 사진은 나만 볼 수 있어요.</p>
         <div class="photo-grid" id="photos"></div>
         <label class="btn">＋ 사진 추가<input type="file" id="photo-input" accept="image/*" multiple hidden></label>
 
         <div class="ai-box">
           <h3>✨ AI로 자동 정리 <span class="badge">선택</span></h3>
-          ${aiEnabled() ? `
-            <p class="hint">올린 사진(최대 ${MAX_AI_IMAGES}장)과 아래 메모를 분석해 레시피 칸을 채워 드려요.</p>
-            <textarea id="ai-text" rows="3" placeholder="캡션이나 영상 설명을 붙여 넣으면 함께 분석해요 (선택)"></textarea>
-            <button type="button" class="btn ai" id="ai-btn">✨ AI로 레시피 채우기</button>
-            <p class="hint" id="ai-status"></p>`
-          : `<p class="hint">AI 자동 정리 기능을 준비하고 있어요. 지금은 직접 입력해 주세요.</p>`}
+          ${aiBoxHtml()}
         </div>
       </section>
 
       <section class="panel">
         <h2>📝 레시피</h2>
-        <label>제목 <b class="req">*</b><input name="title" placeholder="예: 백종원 김치찌개"></label>
+        <label>제목 <b class="req">*</b><input name="title" placeholder="예: 김치찌개"></label>
         <div class="row">
           <label>분류<input name="category" list="cat-list" placeholder="한식"></label>
           <label>조리 시간<input name="time" placeholder="30분"></label>
@@ -233,14 +320,8 @@ function renderForm(id) {
         <label>메모<textarea name="memo" rows="3" placeholder="다음엔 설탕을 조금 줄이기"></textarea></label>
       </section>
 
-      <section class="panel">
-        <h2>🔗 원본 링크</h2>
-        <label>유튜브<input name="youtube" type="url" inputmode="url" placeholder="https://youtube.com/..."></label>
-        <label>인스타그램<input name="instagram" type="url" inputmode="url" placeholder="https://instagram.com/..."></label>
-      </section>
-
       <div class="form-actions">
-        <button type="submit" class="btn primary big">저장하기</button>
+        <button type="submit" class="btn primary big" id="save-btn">저장하기</button>
       </div>
     </form>
     <datalist id="cat-list">${CATEGORIES.map((c) => `<option value="${c}">`).join("")}</datalist>`;
@@ -265,7 +346,7 @@ function renderForm(id) {
   const photosEl = document.getElementById("photos");
   const drawPhotos = () => {
     photosEl.innerHTML = draft.photos.map((p, i) => `
-      <div class="photo"><img src="${p}" alt=""><button type="button" data-remove="${i}" aria-label="사진 삭제">✕</button></div>`).join("");
+      <div class="photo"><img src="${esc(p.src)}" alt=""><button type="button" data-remove="${i}" aria-label="사진 삭제">✕</button></div>`).join("");
   };
   drawPhotos();
   photosEl.onclick = (e) => {
@@ -274,41 +355,61 @@ function renderForm(id) {
   };
   document.getElementById("photo-input").onchange = async (e) => {
     for (const file of e.target.files) {
-      try { draft.photos.push(await resizeImage(file)); }
+      try { draft.photos.push({ src: await resizeImage(file) }); }
       catch { toast(`${file.name}은(는) 열 수 없는 이미지예요.`); }
     }
     e.target.value = "";
     drawPhotos();
   };
 
-  const aiBtn = document.getElementById("ai-btn");
-  if (aiBtn) {
-    const status = document.getElementById("ai-status");
-    aiBtn.onclick = async () => {
-      const text = document.getElementById("ai-text").value.trim();
-      if (!draft.photos.length && !text) { status.textContent = "사진을 올리거나 메모를 입력해 주세요."; return; }
-      if (f.title.value.trim() && !confirm("지금 입력된 레시피 내용을 AI 결과로 바꿀까요?")) return;
-      aiBtn.disabled = true;
-      status.textContent = "AI가 레시피를 정리하고 있어요… (몇 초 정도 걸려요)";
-      try {
-        const { recipe, remaining } = await analyzeRecipe({ images: draft.photos, text });
-        fill(recipe);
-        status.textContent = `다 채웠어요! 내용을 확인하고 저장해 주세요. (오늘 남은 AI 정리 ${remaining}회)`;
-      } catch (err) {
-        status.textContent = err.message || "AI 분석에 실패했어요.";
-      } finally {
-        aiBtn.disabled = false;
-      }
-    };
-  }
+  // AI 버튼 공통 처리
+  const status = document.getElementById("ai-status");
+  const runAi = async (btn, label, task) => {
+    if (f.title.value.trim() && !confirm("지금 입력된 레시피 내용을 AI 결과로 바꿀까요?")) return;
+    document.querySelectorAll(".ai-actions .btn").forEach((b) => (b.disabled = true));
+    status.textContent = label;
+    try {
+      const result = await task();
+      fill(result.recipe);
+      draft.aiGenerated = true;
+      usage = result.usage;
+      status.textContent = "다 채웠어요! 원본과 비교해 확인한 뒤 저장해 주세요.";
+      document.querySelectorAll(".ai-actions .hint").forEach((h, i) => {
+        if (i === 0) h.textContent = `오늘 남은 횟수 ${Math.max(0, usage.ai.limit - usage.ai.used)}/${usage.ai.limit}`;
+        if (i === 1 && isPremium()) h.textContent = `이번 달 남은 횟수 ${Math.max(0, usage.video.limit - usage.video.used)}/${usage.video.limit}`;
+      });
+    } catch (err) {
+      status.textContent = err.message || "AI 정리에 실패했어요.";
+    } finally {
+      document.querySelectorAll(".ai-actions .btn").forEach((b) => (b.disabled = b.textContent.includes("🔒")));
+    }
+  };
+
+  document.getElementById("ai-btn")?.addEventListener("click", (e) => {
+    const text = document.getElementById("ai-text").value.trim();
+    const youtubeUrl = f.youtube.value.trim();
+    if (!draft.photos.length && !text && !youtubeUrl) { status.textContent = "사진, 메모, 유튜브 링크 중 하나는 넣어 주세요."; return; }
+    runAi(e.target, "AI가 레시피를 정리하고 있어요… (몇 초 걸려요)", async () => {
+      const images = await Promise.all(draft.photos.slice(0, MAX_AI_IMAGES).map((p) => srcToDataUrl(p.src)));
+      return analyzeRecipe({ images, text, youtubeUrl });
+    });
+  });
+
+  document.getElementById("video-btn")?.addEventListener("click", (e) => {
+    const youtubeUrl = f.youtube.value.trim();
+    if (!youtubeId(youtubeUrl)) { status.textContent = "위에 유튜브 링크를 먼저 넣어 주세요."; f.youtube.focus(); return; }
+    runAi(e.target, "AI가 영상을 보고 있어요… (영상 길이에 따라 1분 정도 걸릴 수 있어요)", () => analyzeVideo(youtubeUrl));
+  });
 
   form.onsubmit = async (e) => {
     e.preventDefault();
     const title = f.title.value.trim();
     if (!title) { f.title.focus(); toast("제목을 입력해 주세요."); return; }
-    const now = Date.now();
+    const saveBtn = document.getElementById("save-btn");
+    saveBtn.disabled = true;
+    saveBtn.textContent = "저장 중…";
     const recipe = {
-      id: existing?.id || crypto.randomUUID(),
+      id: draft.id,
       title,
       category: f.category.value.trim(),
       time: f.time.value.trim(),
@@ -320,34 +421,45 @@ function renderForm(id) {
       instagram: f.instagram.value.trim(),
       photos: draft.photos,
       favorite: existing?.favorite || false,
-      createdAt: existing?.createdAt || now,
-      updatedAt: now,
+      aiGenerated: draft.aiGenerated,
     };
     try {
-      await db.put(recipe);
+      await db.put(recipe, (existing?.photos || []).map((p) => p.path).filter(Boolean));
+      await reload();
+      toast("저장했어요!");
+      location.hash = `#/recipe/${encodeURIComponent(recipe.id)}`;
     } catch {
-      toast("저장 공간이 부족해요. 사진 수를 줄여 주세요.");
-      return;
+      toast("저장하지 못했어요. 인터넷 연결을 확인해 주세요.");
+      saveBtn.disabled = false;
+      saveBtn.textContent = "저장하기";
     }
-    navigator.storage?.persist?.();
-    await reload();
-    toast("저장했어요!");
-    location.hash = `#/recipe/${encodeURIComponent(recipe.id)}`;
   };
 }
 
 // ---------- 설정 ----------
-async function renderSettings() {
-  const est = await navigator.storage?.estimate?.().catch(() => null);
-  const usedMb = est ? (est.usage / 1024 / 1024).toFixed(1) : null;
+function renderSettings() {
+  const email = session.user.email;
+  const planLabel = isPremium() ? "⭐ 프리미엄" : "🆓 무료";
 
   app.innerHTML = `
     <h1 class="page-title">⚙️ 설정</h1>
 
     <section class="panel">
+      <h2>👤 계정</h2>
+      <p class="hint"><b>${esc(email)}</b> · ${usage ? planLabel : "등급 확인 중"}</p>
+      ${usage ? `
+        <ul class="usage">
+          <li>사진·글 AI 정리: 오늘 ${usage.ai.used}/${usage.ai.limit}회 사용</li>
+          ${isPremium() ? `<li>유튜브 영상 분석: 이번 달 ${usage.video.used}/${usage.video.limit}회 사용</li>` : ""}
+        </ul>` : ""}
+      ${!isPremium() ? `<p class="hint">⭐ 프리미엄은 유튜브 영상을 직접 보고 정리해 드려요 (월 30개). 곧 출시돼요!</p>` : ""}
+      <button class="btn" id="logout">로그아웃</button>
+    </section>
+
+    <section class="panel">
       <h2>💾 백업</h2>
-      <p class="hint">레시피는 이 브라우저에만 저장돼요. 브라우저 데이터를 지우거나 기기를 바꾸면 사라지니, 가끔 백업 파일로 내보내 두세요.</p>
-      <p class="hint">저장된 레시피 <b>${recipes.length}개</b>${usedMb ? ` · 사용 중인 공간 약 ${usedMb}MB` : ""}</p>
+      <p class="hint">레시피는 계정에 저장돼서 어느 기기에서든 볼 수 있어요. 따로 보관하고 싶으면 파일로 내보낼 수 있어요.</p>
+      <p class="hint">저장된 레시피 <b>${recipes.length}개</b></p>
       <div class="key-row">
         <button class="btn primary" id="export">⬇ 백업 내보내기</button>
         <label class="btn">⬆ 백업 불러오기<input type="file" id="import" accept="application/json,.json" hidden></label>
@@ -355,45 +467,80 @@ async function renderSettings() {
     </section>
 
     <section class="panel">
-      <h2>🗑 데이터 초기화</h2>
-      <p class="hint">모든 레시피를 지워요. 되돌릴 수 없으니 먼저 백업해 두세요.</p>
+      <h2>🗑 데이터 삭제</h2>
+      <p class="hint">모든 레시피와 사진을 지워요. 되돌릴 수 없으니 먼저 백업해 두세요.</p>
       <button class="btn danger" id="wipe">모든 레시피 삭제</button>
+      ${CONTACT_EMAIL ? `<p class="hint" style="margin-top:12px">계정 자체를 탈퇴하려면 <a href="mailto:${esc(CONTACT_EMAIL)}?subject=${encodeURIComponent("[Repigram] 계정 삭제 요청")}">계정 삭제 요청</a>을 보내 주세요.</p>` : ""}
     </section>`;
 
-  document.getElementById("export").onclick = () => {
-    const data = { app: "repigram", version: 1, exportedAt: new Date().toISOString(), recipes };
-    const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `repigram-backup-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  document.getElementById("logout").onclick = async () => {
+    await supabase.auth.signOut();
+    location.hash = "#/";
+  };
+
+  document.getElementById("export").onclick = async (e) => {
+    e.target.disabled = true;
+    try {
+      const out = await Promise.all(recipes.map(async (r) => ({
+        ...r,
+        photos: await Promise.all(r.photos.map(async (p) => ({ src: await srcToDataUrl(p.src) }))),
+      })));
+      const data = { app: "repigram", version: 2, exportedAt: new Date().toISOString(), recipes: out };
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: "application/json" }));
+      a.download = `repigram-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    } catch {
+      toast("백업 파일을 만들지 못했어요.");
+    } finally {
+      e.target.disabled = false;
+    }
   };
 
   document.getElementById("import").onchange = async (e) => {
     const file = e.target.files[0];
     e.target.value = "";
     if (!file) return;
+    let list;
     try {
       const data = JSON.parse(await file.text());
-      const list = (Array.isArray(data) ? data : data.recipes || []).filter((r) => r && r.id && r.title);
+      list = (Array.isArray(data) ? data : data.recipes || []).filter((r) => r && r.id && r.title);
       if (!list.length) throw new Error();
-      for (const r of list) await db.put(r);
-      await reload();
-      toast(`레시피 ${list.length}개를 불러왔어요.`);
-      renderSettings();
     } catch {
-      toast("올바른 Repigram 백업 파일이 아니에요.");
+      return toast("올바른 Repigram 백업 파일이 아니에요.");
     }
+    toast(`레시피 ${list.length}개를 불러오는 중…`);
+    let ok = 0;
+    for (const r of list) {
+      const photos = (r.photos || []).map((p) => ({ src: typeof p === "string" ? p : p.src })).filter((p) => p.src?.startsWith("data:image/"));
+      const existing = recipes.find((x) => x.id === r.id);
+      try {
+        await db.put({
+          id: r.id, title: r.title, category: r.category || "", time: r.time || "", servings: r.servings || "",
+          ingredients: r.ingredients || [], steps: r.steps || [], memo: r.memo || "",
+          youtube: r.youtube || "", instagram: r.instagram || "", photos,
+          favorite: !!r.favorite, aiGenerated: !!r.aiGenerated,
+        }, (existing?.photos || []).map((p) => p.path).filter(Boolean));
+        ok++;
+      } catch {}
+    }
+    await reload();
+    toast(`레시피 ${ok}개를 불러왔어요.`);
+    renderSettings();
   };
 
   document.getElementById("wipe").onclick = async () => {
     if (!recipes.length) return toast("지울 레시피가 없어요.");
-    if (!confirm(`레시피 ${recipes.length}개를 모두 삭제할까요? 되돌릴 수 없어요.`)) return;
-    await db.clear();
-    await reload();
-    toast("모두 삭제했어요.");
-    renderSettings();
+    if (!confirm(`레시피 ${recipes.length}개와 사진을 모두 삭제할까요? 되돌릴 수 없어요.`)) return;
+    try {
+      await db.clear(recipes);
+      await reload();
+      toast("모두 삭제했어요.");
+      renderSettings();
+    } catch {
+      toast("삭제하지 못했어요. 다시 시도해 주세요.");
+    }
   };
 }
 
@@ -403,7 +550,6 @@ function renderNotFound() {
 
 // ---------- 예시 데이터 ----------
 async function loadSamples() {
-  const now = Date.now();
   const samples = [
     {
       title: "김치찌개", category: "한식", time: "30분", servings: "2인분",
@@ -418,22 +564,28 @@ async function loadSamples() {
       memo: "예시 레시피예요.",
     },
   ];
-  for (const [i, s] of samples.entries()) {
-    await db.put({ ...s, id: crypto.randomUUID(), youtube: "", instagram: "", photos: [], favorite: false, createdAt: now - i, updatedAt: now - i });
+  try {
+    for (const s of samples) {
+      await db.put({ ...s, id: crypto.randomUUID(), youtube: "", instagram: "", photos: [], favorite: false, aiGenerated: false });
+    }
+    await reload();
+    renderHome();
+  } catch {
+    toast("예시 레시피를 넣지 못했어요.");
   }
-  await reload();
-  renderHome();
 }
 
 // ---------- 라우터 ----------
-async function route() {
+function route() {
+  if (!configured) return renderSetupNeeded();
+  if (!session) return renderLogin();
   const [, page = "", rawId] = (location.hash || "#/").split("/");
   const id = rawId && decodeURIComponent(rawId);
   document.querySelectorAll("[data-nav]").forEach((a) => a.classList.toggle("active", a.dataset.nav === page));
   if (page === "recipe") renderRecipe(id);
   else if (page === "new") renderForm();
   else if (page === "edit") renderForm(id);
-  else if (page === "settings") await renderSettings();
+  else if (page === "settings") renderSettings();
   else renderHome();
   window.scrollTo(0, 0);
 }
@@ -445,10 +597,10 @@ app.addEventListener("click", async (e) => {
     const r = recipes.find((x) => x.id === favBtn.dataset.fav);
     if (!r) return;
     r.favorite = !r.favorite;
-    await db.put(r);
     favBtn.classList.toggle("on", r.favorite);
     favBtn.textContent = r.favorite ? "♥" : "♡";
     favBtn.setAttribute("aria-pressed", r.favorite);
+    try { await db.setFavorite(r.id, r.favorite); } catch { toast("즐겨찾기를 저장하지 못했어요."); }
     if (ui.category === FAV && document.getElementById("results")) renderResults();
     return;
   }
@@ -460,9 +612,36 @@ app.addEventListener("click", async (e) => {
   }
 });
 
+// ---------- 시작 ----------
+async function boot() {
+  document.body.classList.toggle("signed-out", !session);
+  if (session) {
+    app.innerHTML = `<p class="empty">레시피북을 불러오는 중…</p>`;
+    try {
+      await Promise.all([reload(), refreshUsage()]);
+    } catch {
+      app.innerHTML = `<p class="empty">레시피를 불러오지 못했어요. 인터넷 연결을 확인하고 새로고침해 주세요.</p>`;
+      return;
+    }
+  }
+  route();
+}
+
 window.addEventListener("hashchange", route);
-await reload();
-route();
+
+if (configured) {
+  session = (await supabase.auth.getSession()).data.session;
+  // 로그인 후 돌아온 주소의 ?code= 정리
+  if (new URLSearchParams(location.search).has("code")) history.replaceState(null, "", location.pathname + location.hash);
+  supabase.auth.onAuthStateChange((_event, s) => {
+    const changed = !!s !== !!session;
+    session = s;
+    if (changed) setTimeout(boot, 0);
+  });
+} else {
+  document.body.classList.add("signed-out");
+}
+boot();
 
 if ("serviceWorker" in navigator && location.protocol === "https:") {
   navigator.serviceWorker.register("sw.js").catch(() => {});

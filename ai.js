@@ -1,22 +1,34 @@
-// AI 레시피 정리: Repigram AI 서버(Cloudflare Worker)를 거쳐 Claude Haiku로 분석합니다.
-// API 키는 서버에만 있고, 앱에는 없습니다.
+// AI 서버(Cloudflare Worker) 호출. API 키는 서버에만 있고 앱에는 없어요.
+// - 사진·글(+유튜브 설명란) 정리: 모든 회원 (Claude Haiku)
+// - 유튜브 영상 분석: 프리미엄 회원 (Gemini)
 import { API_URL } from "./config.js";
+import { supabase } from "./supabase.js";
 
 export const MAX_AI_IMAGES = 5;
 export const aiEnabled = () => !!API_URL;
 
-export async function analyzeRecipe({ images, text }) {
+async function call(path, body) {
+  const { data } = await supabase.auth.getSession();
   let res;
   try {
-    res = await fetch(`${API_URL}/analyze`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ images: images.slice(0, MAX_AI_IMAGES), text }),
+    res = await fetch(`${API_URL}${path}`, {
+      method: body ? "POST" : "GET",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.session?.access_token}` },
+      body: body && JSON.stringify(body),
     });
   } catch {
     throw new Error("인터넷 연결을 확인해 주세요.");
   }
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || "AI 정리에 실패했어요.");
-  return data; // { recipe, remaining }
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || "AI 요청에 실패했어요.");
+  return json;
 }
+
+// { plan, ai: { used, limit }, video: { used, limit } }
+export const getUsage = () => call("/me");
+
+// 반환: { recipe, usage }
+export const analyzeRecipe = ({ images, text, youtubeUrl }) =>
+  call("/analyze", { images: images.slice(0, MAX_AI_IMAGES), text, youtubeUrl });
+
+export const analyzeVideo = (youtubeUrl) => call("/analyze-video", { youtubeUrl });

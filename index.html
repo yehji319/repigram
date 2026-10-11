@@ -4,19 +4,18 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Repigram · 나만의 레시피북</title>
-  <meta name="description" content="사진과 SNS에서 발견한 요리법을 모아 관리하는 나만의 레시피북">
-  <meta name="theme-color" content="#ff6b3d">
+  <meta name="description" content="사진과 SNS에서 발견한 요리법을 AI가 정리해 주는 나만의 레시피북">
+  <meta name="theme-color" content="#2f8cf5">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <link rel="icon" href="logo.png" type="image/png">
+  <link rel="apple-touch-icon" href="logo.png">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <header class="site-header">
     <div class="container header-inner">
-      <a href="#/" class="logo">🍳 <span>Repigram</span></a>
+      <a href="#/" class="logo"><img src="logo.png" alt="" width="44" height="44"><span class="logo-text"><em>Repi</em>gram</span></a>
       <nav class="nav">
         <a href="#/" data-nav="">레시피북</a>
         <a href="#/new" data-nav="new">＋ 추가</a>
@@ -26,6 +25,17 @@
   </header>
 
   <main id="app" class="container"></main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <nav class="footer-links">
+        <a href="terms.html">이용약관</a>
+        <a href="privacy.html"><b>개인정보처리방침</b></a>
+        <a href="copyright.html">저작권 정책·신고</a>
+      </nav>
+      © Repigram
+    </div>
+  </footer>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script type="module" src="app.js"></script>
