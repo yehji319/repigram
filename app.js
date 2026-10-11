@@ -1,5 +1,5 @@
 import { db } from "./db.js";
-import { analyzeRecipe, getApiKey, setApiKey, MAX_AI_IMAGES } from "./ai.js";
+import { analyzeRecipe, aiEnabled, MAX_AI_IMAGES } from "./ai.js";
 
 const app = document.getElementById("app");
 const CATEGORIES = ["한식", "양식", "중식", "일식", "분식", "디저트", "음료", "기타"];
@@ -198,7 +198,6 @@ function renderForm(id) {
   const existing = id ? recipes.find((x) => x.id === id) : null;
   if (id && !existing) return renderNotFound();
   const draft = { photos: [...(existing?.photos || [])] };
-  const hasKey = !!getApiKey();
 
   app.innerHTML = `
     <a href="${existing ? `#/recipe/${encodeURIComponent(existing.id)}` : "#/"}" class="back">← 돌아가기</a>
@@ -212,12 +211,12 @@ function renderForm(id) {
 
         <div class="ai-box">
           <h3>✨ AI로 자동 정리 <span class="badge">선택</span></h3>
-          ${hasKey ? `
-            <p class="hint">올린 사진${MAX_AI_IMAGES < 99 ? `(최대 ${MAX_AI_IMAGES}장)` : ""}과 아래 메모를 분석해 레시피 칸을 채워 드려요.</p>
+          ${aiEnabled() ? `
+            <p class="hint">올린 사진(최대 ${MAX_AI_IMAGES}장)과 아래 메모를 분석해 레시피 칸을 채워 드려요.</p>
             <textarea id="ai-text" rows="3" placeholder="캡션이나 영상 설명을 붙여 넣으면 함께 분석해요 (선택)"></textarea>
             <button type="button" class="btn ai" id="ai-btn">✨ AI로 레시피 채우기</button>
             <p class="hint" id="ai-status"></p>`
-          : `<p class="hint">설정에서 API 키를 등록하면 사진만 올려도 레시피를 자동으로 정리할 수 있어요. 직접 입력해도 괜찮아요. <a href="#/settings">설정으로 가기 →</a></p>`}
+          : `<p class="hint">AI 자동 정리 기능을 준비하고 있어요. 지금은 직접 입력해 주세요.</p>`}
         </div>
       </section>
 
@@ -290,10 +289,11 @@ function renderForm(id) {
       if (!draft.photos.length && !text) { status.textContent = "사진을 올리거나 메모를 입력해 주세요."; return; }
       if (f.title.value.trim() && !confirm("지금 입력된 레시피 내용을 AI 결과로 바꿀까요?")) return;
       aiBtn.disabled = true;
-      status.textContent = "AI가 레시피를 정리하고 있어요… (10~30초 정도 걸려요)";
+      status.textContent = "AI가 레시피를 정리하고 있어요… (몇 초 정도 걸려요)";
       try {
-        fill(await analyzeRecipe({ images: draft.photos, text, categories: CATEGORIES }));
-        status.textContent = "다 채웠어요! 내용을 확인하고 저장해 주세요.";
+        const { recipe, remaining } = await analyzeRecipe({ images: draft.photos, text });
+        fill(recipe);
+        status.textContent = `다 채웠어요! 내용을 확인하고 저장해 주세요. (오늘 남은 AI 정리 ${remaining}회)`;
       } catch (err) {
         status.textContent = err.message || "AI 분석에 실패했어요.";
       } finally {
@@ -345,18 +345,6 @@ async function renderSettings() {
     <h1 class="page-title">⚙️ 설정</h1>
 
     <section class="panel">
-      <h2>✨ AI 기능 <span class="badge">선택</span></h2>
-      <p class="hint">Anthropic API 키를 등록하면 사진·캡처를 AI가 분석해 레시피를 정리해 줘요.
-        키는 <b>이 브라우저에만</b> 저장되고, 분석할 때 Anthropic으로만 전송돼요. 사용한 만큼 API 요금이 나와요.
-        키는 <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">Anthropic 콘솔</a>에서 만들 수 있어요.</p>
-      <div class="key-row">
-        <input type="password" id="api-key" placeholder="sk-ant-..." autocomplete="off" value="${esc(getApiKey())}">
-        <button class="btn primary" id="key-save">저장</button>
-        <button class="btn" id="key-clear">삭제</button>
-      </div>
-    </section>
-
-    <section class="panel">
       <h2>💾 백업</h2>
       <p class="hint">레시피는 이 브라우저에만 저장돼요. 브라우저 데이터를 지우거나 기기를 바꾸면 사라지니, 가끔 백업 파일로 내보내 두세요.</p>
       <p class="hint">저장된 레시피 <b>${recipes.length}개</b>${usedMb ? ` · 사용 중인 공간 약 ${usedMb}MB` : ""}</p>
@@ -371,17 +359,6 @@ async function renderSettings() {
       <p class="hint">모든 레시피를 지워요. 되돌릴 수 없으니 먼저 백업해 두세요.</p>
       <button class="btn danger" id="wipe">모든 레시피 삭제</button>
     </section>`;
-
-  document.getElementById("key-save").onclick = () => {
-    const key = document.getElementById("api-key").value.trim();
-    setApiKey(key);
-    toast(key ? "API 키를 저장했어요." : "API 키를 지웠어요.");
-  };
-  document.getElementById("key-clear").onclick = () => {
-    setApiKey("");
-    document.getElementById("api-key").value = "";
-    toast("API 키를 지웠어요.");
-  };
 
   document.getElementById("export").onclick = () => {
     const data = { app: "repigram", version: 1, exportedAt: new Date().toISOString(), recipes };

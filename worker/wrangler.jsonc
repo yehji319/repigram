@@ -1,0 +1,18 @@
+{
+  "name": "repigram-api",
+  "main": "src/index.js",
+  "compatibility_date": "2025-09-01",
+  "durable_objects": {
+    "bindings": [{ "name": "QUOTA", "class_name": "Quota" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Quota"] }],
+  "vars": {
+    // 이 주소에서 오는 요청만 받아요
+    "ALLOWED_ORIGINS": "https://yehji319.github.io,https://repigram.com,https://www.repigram.com,http://localhost:5173",
+    // 사용자(IP) 한 명이 하루에 쓸 수 있는 횟수
+    "DAILY_LIMIT_PER_USER": "30",
+    // 전체 사용자 합계 하루 한도 (Haiku 기준 약 2,000회 ≈ 3~4달러)
+    "DAILY_LIMIT_TOTAL": "2000"
+  }
+  // ANTHROPIC_API_KEY는 여기 적지 말고 `npx wrangler secret put ANTHROPIC_API_KEY`로 등록
+}
