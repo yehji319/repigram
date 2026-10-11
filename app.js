@@ -103,7 +103,7 @@ function renderLogin() {
       <img src="logo.png" alt="레피그램 캐릭터" class="hero-logo">
       <div class="bubble">사진만 올리면 AI가 정리해요!</div>
       <p class="eyebrow">찾았던 요리법을 한곳에</p>
-      <h1>나만의 레시피북<br>레피그램</h1>
+      <h1>나만의 레시피북<img src="wordmark.png" alt="레피그램" class="hero-wordmark"></h1>
       <ul class="features">
         <li><b>📸</b>사진·캡처를 올리면 레시피로 정리</li>
         <li><b>▶️</b>유튜브 설명란까지 함께 분석</li>

@@ -5,3 +5,6 @@ node_modules/
 *.json.bak
 repigram-backup-*.json
 desktop.ini
+demo/
+demo.html
+repigram logo.png

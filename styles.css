@@ -84,12 +84,43 @@ code { background: var(--bg-soft); padding: 2px 6px; border-radius: 6px; }
 .logo img, .hero-logo { mix-blend-mode: multiply; }
 @media (prefers-color-scheme: dark) {
   .logo img, .hero-logo { mix-blend-mode: normal; background: #fff; border-radius: 22%; }
+  .logo .wordmark { border-radius: 8px; padding: 2px 6px; }
 }
 .logo em { font-style: normal; color: var(--primary); }
+.logo .wordmark { height: 34px; width: auto; }
+.hero-wordmark { display: block; height: clamp(56px, 16vw, 84px); width: auto; max-width: 100%; margin: 12px auto 0; mix-blend-mode: multiply; }
+@media (max-width: 400px) { .logo .wordmark { height: 28px; } }
 .nav { display: flex; gap: 4px; }
 .nav a { padding: 8px 14px; border-radius: 999px; color: var(--text-2); font-weight: 600; white-space: nowrap; }
 .nav a.active, .nav a:hover { background: var(--primary-soft); color: var(--primary); }
+.nav-icon { margin-right: 4px; }
 .signed-out .nav { display: none; }
+
+/* 휴대폰: 앱처럼 하단 탭 바 */
+@media (max-width: 720px) {
+  .nav {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 0;
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+    background: color-mix(in srgb, var(--surface) 94%, transparent);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -4px 20px rgba(39, 72, 120, 0.06);
+  }
+  .nav a {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    min-height: 56px; padding: 4px; border-radius: 16px; font-size: .78rem;
+  }
+  .nav a:hover { background: transparent; }
+  .nav a.active { background: transparent; }
+  .nav-icon { margin: 0; font-size: 1.45rem; line-height: 1; filter: grayscale(1); opacity: .55; }
+  .nav a.active .nav-icon { filter: none; opacity: 1; }
+  body:not(.signed-out) { padding-bottom: calc(76px + env(safe-area-inset-bottom)); }
+  body:not(.signed-out) .toast { bottom: calc(88px + env(safe-area-inset-bottom)); }
+  /* blur가 있으면 하단 고정 탭 바가 헤더 안에 갇혀서, 휴대폰에서는 끔 */
+  .site-header { backdrop-filter: none; background: var(--surface); }
+  .header-inner { justify-content: center; height: 60px; }
+}
 
 /* ---------- 버튼 ---------- */
 .btn {
@@ -137,7 +168,7 @@ code { background: var(--bg-soft); padding: 2px 6px; border-radius: 6px; }
   font-weight: 600; font-size: .95rem; line-height: 1.45;
 }
 .features li b { display: block; font-size: 1.6rem; margin-bottom: 4px; }
-@media (max-width: 420px) { .features { grid-template-columns: 1fr; } }
+@media (max-width: 420px) { .features { gap: 10px; } .features li { padding: 14px; font-size: .88rem; } }
 .consent { font-size: .88rem; margin-top: 18px !important; }
 
 /* ---------- 목록 ---------- */
