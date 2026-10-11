@@ -650,7 +650,7 @@ function aiBoxHtml() {
     <div class="ai-actions">
       ${isPremium()
         ? `<button type="button" class="btn ai" id="video-btn">🎬 유튜브 영상 분석</button><span class="hint">${video}</span>`
-        : `<button type="button" class="btn" disabled>🔒 유튜브 영상 분석</button><span class="hint">프리미엄 전용: 영상을 직접 보고 말로 설명한 레시피까지 정리해요 (월 30개)</span>`}
+        : `<button type="button" class="btn" disabled>🔒 유튜브 영상 분석</button><span class="hint">프리미엄 전용: 영상을 직접 보고 말로 설명한 레시피까지 정리해요 (월 10개)</span>`}
     </div>
     <p class="hint" id="ai-status" role="status"></p>
     <div class="slot" data-slot="rewarded" hidden></div>
@@ -852,7 +852,7 @@ function renderSettings() {
           <li>사진·글 AI 정리: 오늘 ${usage.ai.used}/${usage.ai.limit}회 사용</li>
           ${isPremium() ? `<li>유튜브 영상 분석: 이번 달 ${usage.video.used}/${usage.video.limit}회 사용</li>` : ""}
         </ul>` : ""}
-      ${!isPremium() ? `<p class="hint">⭐ 프리미엄은 유튜브 영상을 직접 보고 정리해 드려요 (월 30개). 곧 출시돼요!</p>` : ""}
+      ${!isPremium() ? `<p class="hint">⭐ 프리미엄은 유튜브 영상을 직접 보고 정리해 드려요 (월 10개). 곧 출시돼요!</p>` : ""}
       <button class="btn" id="logout">로그아웃</button>
     </section>
 

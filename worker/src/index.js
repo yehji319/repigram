@@ -239,7 +239,7 @@ async function handleAnalyze(body, env, user, cors) {
   }
 }
 
-// POST /analyze-video — 유튜브 영상 전체 분석 → Gemini (프리미엄 전용, 월 30개)
+// POST /analyze-video — 유튜브 영상 전체 분석 → Gemini (프리미엄 전용, 월 횟수는 PREMIUM_MONTHLY_VIDEO)
 async function handleVideo(body, env, user, cors) {
   if (user.plan !== "premium") return json({ error: "영상 분석은 프리미엄 회원 전용 기능이에요." }, 403, cors);
   const ytUrl = typeof body.youtubeUrl === "string" ? body.youtubeUrl.trim() : "";
