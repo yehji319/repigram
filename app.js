@@ -91,6 +91,9 @@ function metaLine(r) {
 const YOUTUBE_ICON = `<svg class="brand-icon" viewBox="0 0 28 20" role="img" aria-label="YouTube"><rect width="28" height="20" rx="5" fill="#FF0000"/><path d="M11 5.5v9l8-4.5z" fill="#fff"/></svg>`;
 const INSTAGRAM_ICON = `<svg class="brand-icon" viewBox="0 0 24 24" role="img" aria-label="Instagram"><defs><radialGradient id="ig-grad" cx="0.3" cy="1.07" r="1.2"><stop offset="0" stop-color="#FFDD55"/><stop offset="0.1" stop-color="#FFDD55"/><stop offset="0.5" stop-color="#FF543E"/><stop offset="1" stop-color="#C837AB"/></radialGradient></defs><rect width="24" height="24" rx="6" fill="url(#ig-grad)"/><rect x="5" y="5" width="14" height="14" rx="4.2" fill="none" stroke="#fff" stroke-width="1.8"/><circle cx="12" cy="12" r="3.4" fill="none" stroke="#fff" stroke-width="1.8"/><circle cx="16.4" cy="7.6" r="1.1" fill="#fff"/></svg>`;
 
+const COOKING_ICON = `<svg class="brand-icon" viewBox="0 0 24 24" role="img" aria-label="요리"><rect width="24" height="24" rx="6" fill="#FF7A3D"/><path d="M9 4.6c-.8.9.8 1.6 0 2.6M12 4c-.8.9.8 1.6 0 2.6M15 4.6c-.8.9.8 1.6 0 2.6" fill="none" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/><rect x="4" y="9.2" width="16" height="2" rx="1" fill="#fff"/><path d="M5.6 11.6h12.8v4.6a3.2 3.2 0 0 1-3.2 3.2H8.8a3.2 3.2 0 0 1-3.2-3.2z" fill="#fff"/><path d="M5.6 13H3.6M18.4 13h2" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg>`;
+const PREMIUM_ICON = `<svg class="brand-icon" viewBox="0 0 24 24" role="img" aria-label="프리미엄"><defs><linearGradient id="gold-grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFD54A"/><stop offset="1" stop-color="#F5A623"/></linearGradient></defs><rect width="24" height="24" rx="6" fill="url(#gold-grad)"/><path d="M5 16.4 4.2 8.6l4.4 3.2L12 6l3.4 5.8 4.4-3.2-.8 7.8z" fill="#fff" stroke="#fff" stroke-width="1" stroke-linejoin="round"/><rect x="5" y="17.4" width="14" height="1.8" rx=".9" fill="#fff"/></svg>`;
+
 // ---------- 로그인 ----------
 function renderSetupNeeded() {
   app.innerHTML = `
@@ -111,8 +114,8 @@ function renderLogin() {
       <ul class="features">
         <li><b>${INSTAGRAM_ICON}</b>사진·캡처를 올리면 레시피로 정리</li>
         <li><b>${YOUTUBE_ICON}</b>유튜브 설명란까지 함께 분석</li>
-        <li><b>🎬</b>프리미엄: 영상을 직접 보고 정리</li>
-        <li><b>☁️</b>어느 기기에서든 같은 레시피북</li>
+        <li><b>${PREMIUM_ICON}</b>프리미엄: 영상을 직접 보고 정리</li>
+        <li><b>${COOKING_ICON}</b>어느 기기에서든 같은 레시피북</li>
       </ul>
       <button class="btn google big" id="google-login">
         <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>
