@@ -83,11 +83,16 @@ const kst = () => new Date(Date.now() + 9 * 3600_000).toISOString();
 const today = () => kst().slice(0, 10);
 const thisMonth = () => kst().slice(0, 7);
 
+const PLANS = ["free", "basic", "premium"];
+
 function limitsFor(env, plan) {
-  return {
-    aiDaily: Number(plan === "premium" ? env.PREMIUM_DAILY_AI : env.FREE_DAILY_AI),
-    videoMonthly: plan === "premium" ? Number(env.PREMIUM_MONTHLY_VIDEO) : 0,
-  };
+  if (plan === "premium") {
+    return { aiDaily: Number(env.PREMIUM_DAILY_AI), videoMonthly: Number(env.PREMIUM_MONTHLY_VIDEO), videoMaxMin: Number(env.PREMIUM_MAX_VIDEO_MINUTES) };
+  }
+  if (plan === "basic") {
+    return { aiDaily: Number(env.BASIC_DAILY_AI), videoMonthly: Number(env.BASIC_MONTHLY_VIDEO), videoMaxMin: Number(env.BASIC_MAX_VIDEO_MINUTES) };
+  }
+  return { aiDaily: Number(env.FREE_DAILY_AI), videoMonthly: 0, videoMaxMin: 0 };
 }
 
 // 여러 카운터를 순서대로 차감하고, 하나라도 막히면 앞에서 차감한 것을 되돌림
@@ -115,7 +120,7 @@ async function getUser(request, env) {
   // 등급은 profiles 테이블에서 읽음 (사용자는 수정 불가, RLS로 본인 것만 조회)
   const profRes = await fetch(`${env.SUPABASE_URL}/rest/v1/profiles?id=eq.${user.id}&select=plan`, { headers });
   const rows = profRes.ok ? await profRes.json() : [];
-  return { id: user.id, plan: rows[0]?.plan === "premium" ? "premium" : "free" };
+  return { id: user.id, plan: PLANS.includes(rows[0]?.plan) ? rows[0].plan : "free" };
 }
 
 // ---------- 유튜브 정보 (공식 YouTube Data API) ----------
@@ -201,7 +206,7 @@ async function usageOf(env, user) {
   return {
     plan: user.plan,
     ai: { used: aiUsed, limit: limits.aiDaily },
-    video: { used: videoUsed, limit: limits.videoMonthly },
+    video: { used: videoUsed, limit: limits.videoMonthly, maxMinutes: limits.videoMaxMin },
   };
 }
 
@@ -239,16 +244,15 @@ async function handleAnalyze(body, env, user, cors) {
   }
 }
 
-// POST /analyze-video — 유튜브 영상 전체 분석 → Gemini (프리미엄 전용, 월 횟수는 PREMIUM_MONTHLY_VIDEO)
+// POST /analyze-video — 유튜브 영상 전체 분석 → Gemini (베이직·프리미엄 전용, 등급별 월 횟수·길이 제한)
 async function handleVideo(body, env, user, cors) {
-  if (user.plan !== "premium") return json({ error: "영상 분석은 프리미엄 회원 전용 기능이에요." }, 403, cors);
+  const limits = limitsFor(env, user.plan);
+  if (!limits.videoMonthly) return json({ error: "영상 분석은 베이직·프리미엄 회원 전용 기능이에요." }, 403, cors);
   const ytUrl = typeof body.youtubeUrl === "string" ? body.youtubeUrl.trim() : "";
   const yt = await getYoutubeInfo(env, ytUrl);
   if (!yt.isPublic) return json({ error: "공개된 영상만 분석할 수 있어요." }, 400, cors);
-  const maxMin = Number(env.MAX_VIDEO_MINUTES);
-  if (yt.seconds > maxMin * 60) return json({ error: `${maxMin}분 이하 영상만 분석할 수 있어요.` }, 400, cors);
+  if (yt.seconds > limits.videoMaxMin * 60) return json({ error: `${limits.videoMaxMin}분 이하 영상만 분석할 수 있어요.` }, 400, cors);
 
-  const limits = limitsFor(env, user.plan);
   const quota = await consume([
     [counter(env, `video:${user.id}:${thisMonth()}`), limits.videoMonthly],
     [counter(env, `global-video:${today()}`), Number(env.GLOBAL_DAILY_VIDEO)],

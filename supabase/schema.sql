@@ -1,10 +1,10 @@
 -- Repigram 데이터베이스 설정
 -- Supabase 대시보드 → SQL Editor에 붙여 넣고 한 번 실행하세요.
 
--- 1) 회원 등급 (free / premium). 사용자는 읽기만 가능, 변경은 관리자(대시보드)·결제 시스템만.
+-- 1) 회원 등급 (free 무료 / basic 베이직 / premium 프리미엄). 사용자는 읽기만 가능, 변경은 관리자(대시보드)·결제 시스템만.
 create table public.profiles (
   id uuid primary key references auth.users on delete cascade,
-  plan text not null default 'free' check (plan in ('free', 'premium')),
+  plan text not null default 'free' check (plan in ('free', 'basic', 'premium')),
   created_at timestamptz not null default now()
 );
 alter table public.profiles enable row level security;
@@ -89,5 +89,5 @@ create policy "본인 사진 업로드" on storage.objects for insert to authent
 create policy "본인 사진 삭제" on storage.objects for delete to authenticated
   using (bucket_id = 'photos' and (storage.foldername(name))[1] = (select auth.uid())::text);
 
--- 프리미엄 지정 (결제 연동 전, 관리자가 직접):
+-- 등급 지정 (결제 연동 전, 관리자가 직접. 'basic' 또는 'premium'):
 -- update public.profiles set plan = 'premium' where id = (select id from auth.users where email = '사용자@gmail.com');

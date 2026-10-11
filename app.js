@@ -28,7 +28,8 @@ const safeUrl = (u) => {
 };
 const youtubeId = (u) => (u || "").match(/(?:youtu\.be\/|[?&]v=|shorts\/|embed\/|live\/)([\w-]{11})/)?.[1] || "";
 const toLines = (s) => s.split("\n").map((x) => x.trim()).filter(Boolean);
-const isPremium = () => usage?.plan === "premium";
+const PLAN_LABELS = { free: "🆓 무료", basic: "🌱 베이직", premium: "⭐ 프리미엄" };
+const isPaid = () => usage?.plan === "basic" || usage?.plan === "premium"; // 유료 회원: 영상 분석 가능, 스폰서 카드 숨김
 const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
 const dayLabel = (d) => `${d.getMonth() + 1}/${d.getDate()} (${DAYS[d.getDay()]})`;
@@ -119,7 +120,7 @@ function openSheet(html, onMount) {
 
 // ---------- 제휴·광고 자리 (partners.js가 비어 있으면 아무것도 보이지 않음) ----------
 function sponsorSlot(name) {
-  const s = SPONSORED[name];
+  const s = isPaid() ? null : SPONSORED[name]; // 유료 회원에게는 스폰서 카드를 보여 주지 않음
   if (!s) return `<div class="slot" data-slot="${name}" hidden></div>`;
   const url = safeUrl(s.url);
   return `
@@ -200,7 +201,7 @@ function renderLogin() {
       <ul class="features">
         <li><b>${INSTAGRAM_ICON}</b>사진·캡처를 올리면 레시피로 정리</li>
         <li><b>${YOUTUBE_ICON}</b>유튜브 설명란까지 함께 분석</li>
-        <li><b>${PREMIUM_ICON}</b>프리미엄: 영상을 직접 보고 정리</li>
+        <li><b>${PREMIUM_ICON}</b>구독하면 영상도 직접 보고 정리</li>
         <li><b>${COOKING_ICON}</b>어느 기기에서든 같은 레시피북</li>
       </ul>
       <button class="btn google big" id="google-login">
@@ -639,7 +640,7 @@ function openRecipePicker(date) {
 function aiBoxHtml() {
   if (!aiEnabled()) return `<p class="hint">AI 자동 정리 기능을 준비하고 있어요. 지금은 직접 입력해 주세요.</p>`;
   const ai = usage ? `오늘 남은 횟수 ${Math.max(0, usage.ai.limit - usage.ai.used)}/${usage.ai.limit}` : "";
-  const video = usage && isPremium() ? `이번 달 남은 횟수 ${Math.max(0, usage.video.limit - usage.video.used)}/${usage.video.limit}` : "";
+  const video = usage && isPaid() ? `이번 달 남은 횟수 ${Math.max(0, usage.video.limit - usage.video.used)}/${usage.video.limit} · ${usage.video.maxMinutes}분 이하 영상` : "";
   return `
     <p class="hint">올린 사진(최대 ${MAX_AI_IMAGES}장), 아래 메모, 유튜브 링크의 설명란을 함께 분석해 레시피 칸을 채워 드려요.</p>
     <textarea id="ai-text" rows="3" placeholder="인스타그램 캡션이나 영상 설명을 붙여 넣으면 함께 분석해요 (선택)"></textarea>
@@ -648,9 +649,9 @@ function aiBoxHtml() {
       <span class="hint">${ai}</span>
     </div>
     <div class="ai-actions">
-      ${isPremium()
+      ${isPaid()
         ? `<button type="button" class="btn ai" id="video-btn">🎬 유튜브 영상 분석</button><span class="hint">${video}</span>`
-        : `<button type="button" class="btn" disabled>🔒 유튜브 영상 분석</button><span class="hint">프리미엄 전용: 영상을 직접 보고 말로 설명한 레시피까지 정리해요 (월 10개)</span>`}
+        : `<button type="button" class="btn" disabled>🔒 유튜브 영상 분석</button><span class="hint">베이직·프리미엄 전용: 영상을 직접 보고 말로 설명한 레시피까지 정리해요</span>`}
     </div>
     <p class="hint" id="ai-status" role="status"></p>
     <div class="slot" data-slot="rewarded" hidden></div>
@@ -767,7 +768,7 @@ function renderForm(id) {
       status.textContent = "다 채웠어요! 원본과 비교해 확인한 뒤 저장해 주세요.";
       document.querySelectorAll(".ai-actions .hint").forEach((h, i) => {
         if (i === 0) h.textContent = `오늘 남은 횟수 ${Math.max(0, usage.ai.limit - usage.ai.used)}/${usage.ai.limit}`;
-        if (i === 1 && isPremium()) h.textContent = `이번 달 남은 횟수 ${Math.max(0, usage.video.limit - usage.video.used)}/${usage.video.limit}`;
+        if (i === 1 && isPaid()) h.textContent = `이번 달 남은 횟수 ${Math.max(0, usage.video.limit - usage.video.used)}/${usage.video.limit} · ${usage.video.maxMinutes}분 이하 영상`;
       });
     } catch (err) {
       status.textContent = err.message || "AI 정리에 실패했어요.";
@@ -839,7 +840,7 @@ function renderForm(id) {
 // ---------- 설정 ----------
 function renderSettings() {
   const email = session.user.email;
-  const planLabel = isPremium() ? "⭐ 프리미엄" : "🆓 무료";
+  const planLabel = PLAN_LABELS[usage?.plan] || PLAN_LABELS.free;
 
   app.innerHTML = `
     <h1 class="page-title">⚙️ 설정</h1>
@@ -850,9 +851,11 @@ function renderSettings() {
       ${usage ? `
         <ul class="usage">
           <li>사진·글 AI 정리: 오늘 ${usage.ai.used}/${usage.ai.limit}회 사용</li>
-          ${isPremium() ? `<li>유튜브 영상 분석: 이번 달 ${usage.video.used}/${usage.video.limit}회 사용</li>` : ""}
+          ${isPaid() ? `<li>유튜브 영상 분석: 이번 달 ${usage.video.used}/${usage.video.limit}회 사용</li>` : ""}
         </ul>` : ""}
-      ${!isPremium() ? `<p class="hint">⭐ 프리미엄은 유튜브 영상을 직접 보고 정리해 드려요 (월 10개). 곧 출시돼요!</p>` : ""}
+      ${usage?.plan === "premium" ? "" : `<p class="hint">${usage?.plan === "basic"
+        ? "⭐ 프리미엄(월 3,900원)으로 올리면 영상 분석이 월 15개로 늘어나요."
+        : "🌱 베이직(월 1,900원)과 ⭐ 프리미엄(월 3,900원)은 유튜브 영상을 직접 보고 정리해 드리고, 광고 카드도 보이지 않아요."} 곧 출시돼요!</p>`}
       <button class="btn" id="logout">로그아웃</button>
     </section>
 
