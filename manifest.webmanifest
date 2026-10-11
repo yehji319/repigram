@@ -1,7 +1,7 @@
 {
   "name": "Repigram 레피그램",
   "short_name": "Repigram",
-  "description": "사진과 SNS에서 발견한 요리법을 모아 관리하는 나만의 레시피북",
+  "description": "사진과 SNS에서 발견한 요리법을 AI가 정리해 주는 나만의 레시피북",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
@@ -9,6 +9,7 @@
   "theme_color": "#2f8cf5",
   "lang": "ko",
   "icons": [
-    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
   ]
 }

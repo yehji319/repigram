@@ -80,6 +80,11 @@ code { background: var(--bg-soft); padding: 2px 6px; border-radius: 6px; }
 .header-inner { display: flex; align-items: center; justify-content: space-between; height: 68px; }
 .logo { display: flex; align-items: center; gap: 8px; font-size: 1.45rem; font-weight: 800; color: var(--brown); letter-spacing: -0.02em; }
 .logo img { width: 44px; height: 44px; object-fit: contain; }
+/* 로고 이미지의 흰 배경을 페이지 배경에 자연스럽게 섞기 */
+.logo img, .hero-logo { mix-blend-mode: multiply; }
+@media (prefers-color-scheme: dark) {
+  .logo img, .hero-logo { mix-blend-mode: normal; background: #fff; border-radius: 22%; }
+}
 .logo em { font-style: normal; color: var(--primary); }
 .nav { display: flex; gap: 4px; }
 .nav a { padding: 8px 14px; border-radius: 999px; color: var(--text-2); font-weight: 600; white-space: nowrap; }
