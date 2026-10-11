@@ -33,6 +33,7 @@ create table public.recipes (
   servings text not null default '',
   ingredients jsonb not null default '[]',
   steps jsonb not null default '[]',
+  step_times jsonb not null default '[]',   -- 단계별 영상 시작 시간(초), 모르면 -1
   memo text not null default '',
   youtube text not null default '',
   instagram text not null default '',
@@ -49,7 +50,36 @@ create policy "본인 레시피 추가" on public.recipes for insert to authenti
 create policy "본인 레시피 수정" on public.recipes for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 create policy "본인 레시피 삭제" on public.recipes for delete to authenticated using ((select auth.uid()) = user_id);
 
--- 3) 사진 저장소 (비공개, 본인 폴더만: photos/<user_id>/...)
+-- 3) 장보기 목록 (본인 것만)
+create table public.shopping_items (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users on delete cascade,
+  text text not null,
+  recipe_id uuid references public.recipes on delete set null,
+  recipe_title text not null default '',
+  checked boolean not null default false,
+  created_at timestamptz not null default now()
+);
+create index shopping_user on public.shopping_items (user_id, created_at);
+alter table public.shopping_items enable row level security;
+create policy "본인 장보기" on public.shopping_items for all to authenticated
+  using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+
+-- 4) 식단 (본인 것만)
+create table public.meal_plans (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users on delete cascade,
+  date date not null,
+  meal text not null check (meal in ('아침', '점심', '저녁', '간식')),
+  recipe_id uuid not null references public.recipes on delete cascade,
+  created_at timestamptz not null default now()
+);
+create index meal_plans_user_date on public.meal_plans (user_id, date);
+alter table public.meal_plans enable row level security;
+create policy "본인 식단" on public.meal_plans for all to authenticated
+  using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+
+-- 5) 사진 저장소 (비공개, 본인 폴더만: photos/<user_id>/...)
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values ('photos', 'photos', false, 5242880, array['image/jpeg', 'image/png', 'image/webp']);
 create policy "본인 사진 조회" on storage.objects for select to authenticated

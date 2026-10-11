@@ -24,9 +24,10 @@ const RECIPE_SCHEMA = {
     servings: { type: "string" },
     ingredients: { type: "array", items: { type: "string" } },
     steps: { type: "array", items: { type: "string" } },
+    step_times: { type: "array", items: { type: "integer" } },
     memo: { type: "string" },
   },
-  required: ["title", "category", "time", "servings", "ingredients", "steps", "memo"],
+  required: ["title", "category", "time", "servings", "ingredients", "steps", "step_times", "memo"],
   additionalProperties: false,
 };
 
@@ -42,6 +43,7 @@ function photoPrompt(text, yt) {
 
 - 캡처나 자료에 재료와 조리 순서가 적혀 있으면 빠짐없이 반영해 주세요.
 - 완성 사진만 보고 추정했다면 memo 맨 앞에 "사진을 보고 추정한 레시피예요."라고 적어 주세요.
+- step_times는 steps와 같은 개수로, 유튜브 설명란에 챕터 시간(예: "02:13 김치 볶기")이 있으면 그 단계가 시작하는 시간(초)을, 없으면 -1을 넣어 주세요.
 ${RULES}${yt ? `\n\n[유튜브 영상 정보]\n제목: ${yt.title}\n채널: ${yt.channel}\n설명란:\n${yt.description}` : ""}${text ? `\n\n[사용자 메모]\n${text}` : ""}`;
 }
 
@@ -52,6 +54,7 @@ function videoPrompt(yt) {
 - 화면 자막이나 글자로 나온 분량도 반영해 주세요.
 - 영상에서 분량을 말하지 않았다면 추측하지 말고 재료 이름만 적어 주세요.
 - memo에는 영상에서 강조한 팁을 짧게 정리해 주세요.
+- step_times는 steps와 같은 개수로, 각 단계가 영상에서 시작하는 시간(초)을 넣어 주세요. 알 수 없으면 -1.
 ${RULES}
 
 [영상 정보]\n제목: ${yt.title}\n채널: ${yt.channel}\n설명란:\n${yt.description}`;

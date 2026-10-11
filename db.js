@@ -1,4 +1,4 @@
-// 레시피는 Supabase(클라우드)에 저장: 어느 기기에서 로그인해도 같은 레시피북이 보여요.
+// 레시피·장보기·식단은 Supabase(클라우드)에 저장: 어느 기기에서 로그인해도 같은 데이터가 보여요.
 // 사진은 비공개 Storage의 photos/<user_id>/<recipe_id>/ 폴더에 저장돼요.
 import { supabase } from "./supabase.js";
 
@@ -10,10 +10,15 @@ async function userId() {
   return data.session.user.id;
 }
 
+async function check(promise) {
+  const { data, error } = await promise;
+  if (error) throw error;
+  return data;
+}
+
 async function signedUrls(paths) {
   if (!paths.length) return {};
-  const { data, error } = await supabase.storage.from(BUCKET).createSignedUrls(paths, URL_TTL);
-  if (error) throw error;
+  const data = await check(supabase.storage.from(BUCKET).createSignedUrls(paths, URL_TTL));
   return Object.fromEntries(data.filter((d) => d.signedUrl).map((d) => [d.path, d.signedUrl]));
 }
 
@@ -26,6 +31,7 @@ function fromRow(row, urls) {
     servings: row.servings,
     ingredients: row.ingredients,
     steps: row.steps,
+    stepTimes: row.step_times || [],
     memo: row.memo,
     youtube: row.youtube,
     instagram: row.instagram,
@@ -43,8 +49,7 @@ async function removeFiles(paths) {
 
 export const db = {
   async all() {
-    const { data, error } = await supabase.from("recipes").select("*").order("updated_at", { ascending: false });
-    if (error) throw error;
+    const data = await check(supabase.from("recipes").select("*").order("updated_at", { ascending: false }));
     const urls = await signedUrls(data.flatMap((r) => r.photos));
     return data.map((r) => fromRow(r, urls));
   },
@@ -57,11 +62,10 @@ export const db = {
       if (photo.path) { paths.push(photo.path); continue; }
       const blob = await (await fetch(photo.src)).blob();
       const path = `${uid}/${recipe.id}/${crypto.randomUUID()}.jpg`;
-      const { error } = await supabase.storage.from(BUCKET).upload(path, blob, { contentType: blob.type || "image/jpeg" });
-      if (error) throw error;
+      await check(supabase.storage.from(BUCKET).upload(path, blob, { contentType: blob.type || "image/jpeg" }));
       paths.push(path);
     }
-    const { error } = await supabase.from("recipes").upsert({
+    await check(supabase.from("recipes").upsert({
       id: recipe.id,
       title: recipe.title,
       category: recipe.category,
@@ -69,6 +73,7 @@ export const db = {
       servings: recipe.servings,
       ingredients: recipe.ingredients,
       steps: recipe.steps,
+      step_times: recipe.stepTimes || [],
       memo: recipe.memo,
       youtube: recipe.youtube,
       instagram: recipe.instagram,
@@ -76,25 +81,40 @@ export const db = {
       favorite: recipe.favorite,
       ai_generated: recipe.aiGenerated,
       updated_at: new Date().toISOString(),
-    });
-    if (error) throw error;
+    }));
     await removeFiles(previousPaths.filter((p) => !paths.includes(p)));
   },
 
   async setFavorite(id, favorite) {
-    const { error } = await supabase.from("recipes").update({ favorite }).eq("id", id);
-    if (error) throw error;
+    await check(supabase.from("recipes").update({ favorite }).eq("id", id));
   },
 
   async remove(recipe) {
-    const { error } = await supabase.from("recipes").delete().eq("id", recipe.id);
-    if (error) throw error;
+    await check(supabase.from("recipes").delete().eq("id", recipe.id));
     await removeFiles(recipe.photos.map((p) => p.path).filter(Boolean));
   },
 
   async clear(recipes) {
-    const { error } = await supabase.from("recipes").delete().eq("user_id", await userId());
-    if (error) throw error;
+    await check(supabase.from("recipes").delete().eq("user_id", await userId()));
     await removeFiles(recipes.flatMap((r) => r.photos.map((p) => p.path)).filter(Boolean));
   },
+};
+
+// 장보기 목록: { id, text, recipe_id, recipe_title, checked }
+export const shopping = {
+  all: () => check(supabase.from("shopping_items").select("*").order("created_at", { ascending: true })),
+  add: (items) => check(supabase.from("shopping_items").insert(items.map((i) => ({
+    id: crypto.randomUUID(), text: i.text, recipe_id: i.recipeId || null, recipe_title: i.recipeTitle || "", checked: false,
+  })))),
+  setChecked: (id, checked) => check(supabase.from("shopping_items").update({ checked }).eq("id", id)),
+  remove: (id) => check(supabase.from("shopping_items").delete().eq("id", id)),
+  clearChecked: () => check(supabase.from("shopping_items").delete().eq("checked", true)),
+  clearAll: async () => check(supabase.from("shopping_items").delete().eq("user_id", await userId())),
+};
+
+// 식단: { id, date: "YYYY-MM-DD", meal: "아침"|"점심"|"저녁"|"간식", recipe_id }
+export const plans = {
+  range: (from, to) => check(supabase.from("meal_plans").select("*").gte("date", from).lte("date", to).order("created_at", { ascending: true })),
+  add: (p) => check(supabase.from("meal_plans").insert({ id: crypto.randomUUID(), date: p.date, meal: p.meal, recipe_id: p.recipeId })),
+  remove: (id) => check(supabase.from("meal_plans").delete().eq("id", id)),
 };

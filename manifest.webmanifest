@@ -5,9 +5,19 @@
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#f4f8fd",
-  "theme_color": "#2f8cf5",
+  "background_color": "#f6eddc",
+  "theme_color": "#4f613b",
   "lang": "ko",
+  "share_target": {
+    "action": "./",
+    "method": "GET",
+    "params": { "title": "title", "text": "text", "url": "url" }
+  },
+  "shortcuts": [
+    { "name": "레시피 추가", "url": "./#/new" },
+    { "name": "장보기", "url": "./#/shop" },
+    { "name": "식단", "url": "./#/plan" }
+  ],
   "icons": [
     { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
