@@ -11,7 +11,7 @@
 <body>
   <header class="site-header">
     <div class="container header-inner">
-      <a href="./" class="logo"><img src="logo.png" alt="" width="44" height="44"><img class="wordmark" src="wordmark.png" alt="Repigram" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="logo-text" hidden><em>Repi</em>gram</span></a>
+      <a href="./" class="logo"><img class="mascot" src="logo.png" alt="" width="44" height="44"><span class="wm" role="img" aria-label="Repigram"><img src="wm-base.png" alt=""><img class="wm-egg" src="wm-egg.png" alt=""><img class="wm-stick" src="wm-stick.png" alt=""><img class="wm-carrot" src="wm-carrot.png" alt=""></span></a>
     </div>
   </header>
 
@@ -28,9 +28,9 @@
       <h2>원작자를 존중하기 위해 이렇게 만들었어요</h2>
       <ul>
         <li><b>원본 링크를 함께 보관해요.</b> 레시피 화면에 원본 영상·게시물로 가는 링크가 항상 표시돼요.</li>
-        <li><b>원본을 복사해서 보관하지 않아요.</b> 유튜브 영상, 설명란, 자막 원문은 저장하지 않고 AI 정리에만 잠깐 사용해요. 유튜브 썸네일은 유튜브가 제공하는 주소로만 보여 줘요.</li>
+        <li><b>원본을 복사해서 보관하지 않아요.</b> <svg class="inline-icon" viewBox="0 0 28 20" aria-hidden="true"><rect width="28" height="20" rx="5" fill="#FF0000"/><path d="M11 5.5v9l8-4.5z" fill="#fff"/></svg>유튜브 영상, 설명란, 자막 원문은 저장하지 않고 AI 정리에만 잠깐 사용해요. 유튜브 썸네일은 유튜브가 제공하는 주소로만 보여 줘요.</li>
         <li><b>AI가 원문을 그대로 베끼지 않도록</b> 재료와 조리 순서를 간결하게 다시 정리하도록 설정했어요.</li>
-        <li><b>인스타그램 등 다른 플랫폼의 내용을 몰래 수집하지 않아요.</b> 회원이 직접 올린 캡처와 붙여 넣은 글만 사용해요.</li>
+        <li><svg class="inline-icon" viewBox="0 0 24 24" aria-hidden="true"><defs><radialGradient id="ig-c1" cx="0.3" cy="1.07" r="1.2"><stop offset="0" stop-color="#FFDD55"/><stop offset="0.1" stop-color="#FFDD55"/><stop offset="0.5" stop-color="#FF543E"/><stop offset="1" stop-color="#C837AB"/></radialGradient></defs><rect width="24" height="24" rx="6" fill="url(#ig-c1)"/><rect x="5" y="5" width="14" height="14" rx="4.2" fill="none" stroke="#fff" stroke-width="1.8"/><circle cx="12" cy="12" r="3.4" fill="none" stroke="#fff" stroke-width="1.8"/><circle cx="16.4" cy="7.6" r="1.1" fill="#fff"/></svg><b>인스타그램 등 다른 플랫폼의 내용을 몰래 수집하지 않아요.</b> 회원이 직접 올린 캡처와 붙여 넣은 글만 사용해요.</li>
         <li><b>공개 피드나 검색 노출이 없어요.</b></li>
       </ul>
     </section>
@@ -84,5 +84,6 @@
       © Repigram
     </div>
   </footer>
+  <script src="wordmark.js" defer></script>
 </body>
 </html>

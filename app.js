@@ -176,8 +176,17 @@ function captureShareFromUrl() {
 }
 
 // ---------- 브랜드 아이콘 ----------
-const YOUTUBE_ICON = `<svg class="brand-icon" viewBox="0 0 28 20" role="img" aria-label="YouTube"><rect width="28" height="20" rx="5" fill="#FF0000"/><path d="M11 5.5v9l8-4.5z" fill="#fff"/></svg>`;
-const INSTAGRAM_ICON = `<svg class="brand-icon" viewBox="0 0 24 24" role="img" aria-label="Instagram"><defs><radialGradient id="ig-grad" cx="0.3" cy="1.07" r="1.2"><stop offset="0" stop-color="#FFDD55"/><stop offset="0.1" stop-color="#FFDD55"/><stop offset="0.5" stop-color="#FF543E"/><stop offset="1" stop-color="#C837AB"/></radialGradient></defs><rect width="24" height="24" rx="6" fill="url(#ig-grad)"/><rect x="5" y="5" width="14" height="14" rx="4.2" fill="none" stroke="#fff" stroke-width="1.8"/><circle cx="12" cy="12" r="3.4" fill="none" stroke="#fff" stroke-width="1.8"/><circle cx="16.4" cy="7.6" r="1.1" fill="#fff"/></svg>`;
+// 유튜브·인스타그램이 나오는 곳마다 로고를 붙임 (인스타 그라데이션 id는 매번 다르게)
+let iconSeq = 0;
+const ytIcon = (cls = "inline-icon") => `<svg class="${cls}" viewBox="0 0 28 20" role="img" aria-label="YouTube"><rect width="28" height="20" rx="5" fill="#FF0000"/><path d="M11 5.5v9l8-4.5z" fill="#fff"/></svg>`;
+const igIcon = (cls = "inline-icon") => {
+  const id = `ig-grad-${++iconSeq}`;
+  return `<svg class="${cls}" viewBox="0 0 24 24" role="img" aria-label="Instagram"><defs><radialGradient id="${id}" cx="0.3" cy="1.07" r="1.2"><stop offset="0" stop-color="#FFDD55"/><stop offset="0.1" stop-color="#FFDD55"/><stop offset="0.5" stop-color="#FF543E"/><stop offset="1" stop-color="#C837AB"/></radialGradient></defs><rect width="24" height="24" rx="6" fill="url(#${id})"/><rect x="5" y="5" width="14" height="14" rx="4.2" fill="none" stroke="#fff" stroke-width="1.8"/><circle cx="12" cy="12" r="3.4" fill="none" stroke="#fff" stroke-width="1.8"/><circle cx="16.4" cy="7.6" r="1.1" fill="#fff"/></svg>`;
+};
+const YT = () => ytIcon();
+const IG = () => igIcon();
+// 움직이는 워드마크: 바탕 + 당근(깡충) + 달걀(팬 위에서 흔들) + 국자(휘휘)
+const wordmarkHTML = (cls = "") => `<span class="wm ${cls}" role="img" aria-label="Repigram"><img src="wm-base.png" alt=""><img class="wm-egg" src="wm-egg.png" alt=""><img class="wm-stick" src="wm-stick.png" alt=""><img class="wm-carrot" src="wm-carrot.png" alt=""></span>`;
 const COOKING_ICON = `<svg class="brand-icon" viewBox="0 0 24 24" role="img" aria-label="요리"><rect width="24" height="24" rx="6" fill="#9A9C53"/><path d="M9 4.6c-.8.9.8 1.6 0 2.6M12 4c-.8.9.8 1.6 0 2.6M15 4.6c-.8.9.8 1.6 0 2.6" fill="none" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/><rect x="4" y="9.2" width="16" height="2" rx="1" fill="#fff"/><path d="M5.6 11.6h12.8v4.6a3.2 3.2 0 0 1-3.2 3.2H8.8a3.2 3.2 0 0 1-3.2-3.2z" fill="#fff"/><path d="M5.6 13H3.6M18.4 13h2" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg>`;
 const PREMIUM_ICON = `<svg class="brand-icon" viewBox="0 0 24 24" role="img" aria-label="프리미엄"><defs><linearGradient id="gold-grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFD54A"/><stop offset="1" stop-color="#F5A623"/></linearGradient></defs><rect width="24" height="24" rx="6" fill="url(#gold-grad)"/><path d="M5 16.4 4.2 8.6l4.4 3.2L12 6l3.4 5.8 4.4-3.2-.8 7.8z" fill="#fff" stroke="#fff" stroke-width="1" stroke-linejoin="round"/><rect x="5" y="17.4" width="14" height="1.8" rx=".9" fill="#fff"/></svg>`;
 
@@ -197,10 +206,10 @@ function renderLogin() {
       <img src="logo.png" alt="레피그램 캐릭터" class="hero-logo">
       <div class="bubble">사진만 올리면 AI가 정리해요!</div>
       <p class="eyebrow">찾았던 요리법을 한곳에</p>
-      <h1>나만의 레시피북<img src="wordmark.png" alt="레피그램" class="hero-wordmark"></h1>
+      <h1>나만의 레시피북${wordmarkHTML("hero-wordmark")}</h1>
       <ul class="features">
-        <li><b>${INSTAGRAM_ICON}</b>사진·캡처를 올리면 레시피로 정리</li>
-        <li><b>${YOUTUBE_ICON}</b>유튜브 설명란까지 함께 분석</li>
+        <li><b>${igIcon("brand-icon")}</b>사진·캡처를 올리면 레시피로 정리</li>
+        <li><b>${ytIcon("brand-icon")}</b>유튜브 설명란까지 함께 분석</li>
         <li><b>${PREMIUM_ICON}</b>구독하면 영상도 직접 보고 정리</li>
         <li><b>${COOKING_ICON}</b>어느 기기에서든 같은 레시피북</li>
       </ul>
@@ -222,7 +231,7 @@ function renderLogin() {
 
 // ---------- 레시피북 (목록) ----------
 function card(r) {
-  const sources = [r.youtube && "▶ YouTube", r.instagram && "📷 Instagram"].filter(Boolean).join(" · ");
+  const sources = [r.youtube && `<span class="src">${YT()}YouTube</span>`, r.instagram && `<span class="src">${IG()}Instagram</span>`].filter(Boolean).join("");
   return `
     <article class="card">
       <a href="#/recipe/${encodeURIComponent(r.id)}" class="card-link">
@@ -240,7 +249,7 @@ function card(r) {
 
 const importBox = () => `
   <form class="import-box" id="import-form">
-    <span class="import-icon" aria-hidden="true">🔗</span>
+    <span class="import-icon" aria-hidden="true">${YT()}${IG()}</span>
     <input id="import-link" type="url" inputmode="url" placeholder="유튜브·인스타 링크 붙여넣기" aria-label="가져올 링크">
     <button type="button" class="btn small" id="paste-btn">붙여넣기</button>
     <button type="submit" class="btn primary small">가져오기</button>
@@ -268,7 +277,7 @@ function renderHome() {
       <section class="welcome">
         <img src="logo.png" alt="" class="hero-logo">
         <h1>첫 레시피를 저장해 보세요</h1>
-        <p>유튜브·인스타그램 링크나 요리 캡처를 올리면<br>레시피로 깔끔하게 정리해 둘 수 있어요.</p>
+        <p>${YT()}유튜브·${IG()}인스타그램 링크나 요리 캡처를 올리면<br>레시피로 깔끔하게 정리해 둘 수 있어요.</p>
         ${importBox()}
         <div class="welcome-actions">
           <a href="#/new" class="btn primary">＋ 직접 추가하기</a>
@@ -354,8 +363,8 @@ function renderRecipe(id) {
           ${yt ? `<div class="video" id="video"><button class="video-poster" data-play="0" aria-label="영상 재생">
               <img src="https://img.youtube.com/vi/${yt}/hqdefault.jpg" alt=""><span class="play">▶</span></button></div>` : ""}
           <div class="source-links">
-            ${ytUrl ? `<a href="${esc(ytUrl)}" target="_blank" rel="noopener" class="source">${YOUTUBE_ICON}<span>유튜브에서 보기</span></a>` : ""}
-            ${igUrl ? `<a href="${esc(igUrl)}" target="_blank" rel="noopener" class="source">${INSTAGRAM_ICON}<span>인스타그램에서 보기</span></a>` : ""}
+            ${ytUrl ? `<a href="${esc(ytUrl)}" target="_blank" rel="noopener" class="source">${ytIcon("brand-icon")}<span>유튜브에서 보기</span></a>` : ""}
+            ${igUrl ? `<a href="${esc(igUrl)}" target="_blank" rel="noopener" class="source">${igIcon("brand-icon")}<span>인스타그램에서 보기</span></a>` : ""}
           </div>
           <p class="notice">원본 영상·게시물의 저작권은 원작자에게 있어요. 원작자를 응원하려면 원본에서 좋아요와 구독을 눌러 주세요.</p>
         </section>` : ""}
@@ -642,7 +651,7 @@ function aiBoxHtml() {
   const ai = usage ? `오늘 남은 횟수 ${Math.max(0, usage.ai.limit - usage.ai.used)}/${usage.ai.limit}` : "";
   const video = usage && isPaid() ? `이번 달 남은 횟수 ${Math.max(0, usage.video.limit - usage.video.used)}/${usage.video.limit} · ${usage.video.maxMinutes}분 이하 영상` : "";
   return `
-    <p class="hint">올린 사진(최대 ${MAX_AI_IMAGES}장), 아래 메모, 유튜브 링크의 설명란을 함께 분석해 레시피 칸을 채워 드려요.</p>
+    <p class="hint">올린 사진(최대 ${MAX_AI_IMAGES}장), 아래 메모, ${YT()}유튜브 링크의 설명란을 함께 분석해 레시피 칸을 채워 드려요.</p>
     <textarea id="ai-text" rows="3" placeholder="인스타그램 캡션이나 영상 설명을 붙여 넣으면 함께 분석해요 (선택)"></textarea>
     <div class="ai-actions">
       <button type="button" class="btn ai" id="ai-btn">✨ 사진·글로 정리</button>
@@ -650,8 +659,8 @@ function aiBoxHtml() {
     </div>
     <div class="ai-actions">
       ${isPaid()
-        ? `<button type="button" class="btn ai" id="video-btn">🎬 유튜브 영상 분석</button><span class="hint">${video}</span>`
-        : `<button type="button" class="btn" disabled>🔒 유튜브 영상 분석</button><span class="hint">베이직·프리미엄 전용: 영상을 직접 보고 말로 설명한 레시피까지 정리해요</span>`}
+        ? `<button type="button" class="btn ai" id="video-btn">${ytIcon("btn-icon")} 유튜브 영상 분석</button><span class="hint">${video}</span>`
+        : `<button type="button" class="btn" disabled>🔒 ${ytIcon("btn-icon")} 유튜브 영상 분석</button><span class="hint">베이직·프리미엄 전용: 영상을 직접 보고 말로 설명한 레시피까지 정리해요</span>`}
     </div>
     <p class="hint" id="ai-status" role="status"></p>
     <div class="slot" data-slot="rewarded" hidden></div>
@@ -677,8 +686,8 @@ function renderForm(id) {
     <form id="form" class="form" novalidate>
       <section class="panel">
         <h2>📥 가져오기</h2>
-        <label>유튜브 링크<input name="youtube" type="url" inputmode="url" placeholder="https://youtube.com/..."></label>
-        <label>인스타그램 링크<input name="instagram" type="url" inputmode="url" placeholder="https://instagram.com/..."></label>
+        <label>${YT()}유튜브 링크<input name="youtube" type="url" inputmode="url" placeholder="https://youtube.com/..."></label>
+        <label>${IG()}인스타그램 링크<input name="instagram" type="url" inputmode="url" placeholder="https://instagram.com/..."></label>
 
         <h3 class="sub">📸 사진</h3>
         <p class="hint">직접 찍은 사진이나 개인 보관용 캡처를 올려 주세요. 올린 사진은 나만 볼 수 있어요.</p>
@@ -851,17 +860,17 @@ function renderSettings() {
       ${usage ? `
         <ul class="usage">
           <li>사진·글 AI 정리: 오늘 ${usage.ai.used}/${usage.ai.limit}회 사용</li>
-          ${isPaid() ? `<li>유튜브 영상 분석: 이번 달 ${usage.video.used}/${usage.video.limit}회 사용</li>` : ""}
+          ${isPaid() ? `<li>${YT()}유튜브 영상 분석: 이번 달 ${usage.video.used}/${usage.video.limit}회 사용</li>` : ""}
         </ul>` : ""}
       ${usage?.plan === "premium" ? "" : `<p class="hint">${usage?.plan === "basic"
         ? "⭐ 프리미엄(월 3,900원)으로 올리면 영상 분석이 월 15개로 늘어나요."
-        : "🌱 베이직(월 1,900원)과 ⭐ 프리미엄(월 3,900원)은 유튜브 영상을 직접 보고 정리해 드리고, 광고 카드도 보이지 않아요."} 곧 출시돼요!</p>`}
+        : `🌱 베이직(월 1,900원)과 ⭐ 프리미엄(월 3,900원)은 ${YT()}유튜브 영상을 직접 보고 정리해 드리고, 광고 카드도 보이지 않아요.`} 곧 출시돼요!</p>`}
       <button class="btn" id="logout">로그아웃</button>
     </section>
 
     <section class="panel">
       <h2>📲 앱처럼 쓰기</h2>
-      <p class="hint">휴대폰 브라우저 메뉴에서 <b>홈 화면에 추가</b>를 누르면 앱처럼 쓸 수 있어요. 안드로이드에서는 유튜브·인스타그램의 <b>공유</b> 버튼으로 바로 레피그램에 저장할 수 있어요.</p>
+      <p class="hint">휴대폰 브라우저 메뉴에서 <b>홈 화면에 추가</b>를 누르면 앱처럼 쓸 수 있어요. 안드로이드에서는 ${YT()}유튜브·${IG()}인스타그램의 <b>공유</b> 버튼으로 바로 레피그램에 저장할 수 있어요.</p>
     </section>
 
     <section class="panel">

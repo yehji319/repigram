@@ -1,6 +1,6 @@
 // 오프라인에서도 앱 화면이 열리도록 앱 파일을 캐시합니다 (네트워크 우선).
-const CACHE = "repigram-v5";
-const ASSETS = ["./", "index.html", "styles.css", "app.js", "db.js", "ai.js", "supabase.js", "config.js", "scale.js", "cooking.js", "partners.js", "icon-192.png", "icon-512.png", "manifest.webmanifest", "logo.png", "wordmark.png", "terms.html", "privacy.html", "copyright.html"];
+const CACHE = "repigram-v6";
+const ASSETS = ["./", "index.html", "styles.css", "app.js", "db.js", "ai.js", "supabase.js", "config.js", "scale.js", "cooking.js", "partners.js", "icon-192.png", "icon-512.png", "manifest.webmanifest", "logo.png", "wordmark.png", "wordmark.js", "wm-base.png", "wm-carrot.png", "wm-egg.png", "wm-stick.png", "terms.html", "privacy.html", "copyright.html"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(

@@ -90,7 +90,7 @@ export function startCooking(recipe, ingredients, doneExtra = "") {
         <p class="cook-step">${esc(recipe.steps[p])}</p>
         <div class="cook-tools">
           ${sec ? `<button class="btn ai big" data-act="timer" data-sec="${sec}">⏱ ${formatClock(sec)} 타이머 시작</button>` : ""}
-          ${recipe.youtubeId && t >= 0 ? `<a class="btn big" target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=${recipe.youtubeId}&t=${t}s">▶ 영상에서 보기 (${formatClock(t)})</a>` : ""}
+          ${recipe.youtubeId && t >= 0 ? `<a class="btn big" target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=${recipe.youtubeId}&t=${t}s"><svg class="btn-icon" viewBox="0 0 28 20" aria-hidden="true"><rect width="28" height="20" rx="5" fill="#FF0000"/><path d="M11 5.5v9l8-4.5z" fill="#fff"/></svg> 유튜브에서 이 장면 보기 (${formatClock(t)})</a>` : ""}
         </div>`;
     }
     el.innerHTML = `

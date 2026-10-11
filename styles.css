@@ -1,9 +1,9 @@
 /* Repigram — 따뜻한 베이지 바탕, 진초록·올리브·크림·크림슨 / 모바일 우선, 큼직하고 귀엽게 */
 :root {
-  --bg: #f6eddc;            /* 따뜻한 베이지 */
-  --bg-soft: #efe3cc;
-  --surface: #fffbf4;       /* 카드: 크림 화이트 */
-  --cream: #faf2e5;
+  --bg: #fbf5ea;            /* 따뜻한 베이지 (밝게) */
+  --bg-soft: #f4ebdb;
+  --surface: #fffdf9;       /* 카드: 크림 화이트 */
+  --cream: #fdf8ef;
   --text: #2e2a22;
   --text-2: #5a5346;
   --muted: #8a8172;
@@ -16,8 +16,8 @@
   --accent: #d3163b;        /* 크림슨 */
   --accent-soft: #fbe2e6;
   --danger: #c0142f;
-  --border: #e6d9c2;
-  --thumb: #f1e6d2;
+  --border: #ece1cd;
+  --thumb: #f5ecdd;
   --shadow: 0 6px 22px rgba(79, 60, 30, 0.08);
   --shadow-lg: 0 14px 38px rgba(79, 60, 30, 0.14);
   --radius: 24px;
@@ -79,16 +79,49 @@ code { background: var(--bg-soft); padding: 2px 6px; border-radius: 6px; }
 }
 .header-inner { display: flex; align-items: center; justify-content: space-between; height: 68px; }
 .logo { display: flex; align-items: center; gap: 8px; font-size: 1.45rem; font-weight: 800; color: var(--primary); letter-spacing: -0.02em; }
-.logo img { width: 44px; height: 44px; object-fit: contain; }
+.logo .mascot { width: 44px; height: 44px; object-fit: contain; }
 .logo em { font-style: normal; color: var(--accent); }
-.logo .wordmark { height: 34px; width: auto; }
-.hero-wordmark { display: block; height: clamp(56px, 16vw, 84px); width: auto; max-width: 100%; margin: 12px auto 0; mix-blend-mode: multiply; }
-/* 로고 이미지의 흰 배경을 베이지 배경에 자연스럽게 섞기 */
-.logo img, .hero-logo { mix-blend-mode: multiply; }
-@media (prefers-color-scheme: dark) {
-  .logo img, .hero-logo, .hero-wordmark { mix-blend-mode: normal; background: #fffbf4; border-radius: 22%; }
-  .logo .wordmark, .hero-wordmark { border-radius: 10px; padding: 2px 8px; }
+/* 마스코트: 흰 배경을 베이지에 섞고, 항상 살짝 위아래로 */
+.logo .mascot, .hero-logo { mix-blend-mode: multiply; }
+.logo .mascot { animation: bob-small 3s ease-in-out infinite; }
+@keyframes bob-small { 50% { transform: translateY(-3px) rotate(-3deg); } }
+
+/* 움직이는 워드마크: 바탕 위에 당근·달걀·국자 조각을 겹침 */
+.wm { position: relative; display: inline-block; height: 34px; aspect-ratio: 921 / 240; flex-shrink: 0; }
+.wm img { position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; }
+.wm-carrot { transform-origin: 43.2% 75%; }
+.wm-carrot.hop { animation: carrot-hop .7s cubic-bezier(.3, .7, .4, 1); }
+.wm-carrot.hop2 { animation: carrot-hop .55s cubic-bezier(.3, .7, .4, 1) 2; }
+@keyframes carrot-hop {
+  0% { transform: translateY(0) scale(1, 1); }
+  15% { transform: translateY(0) scale(1.08, .9); }
+  45% { transform: translateY(-22%) scale(.95, 1.06) rotate(-6deg); }
+  75% { transform: translateY(0) scale(1.06, .93); }
+  100% { transform: translateY(0) scale(1, 1); }
 }
+.wm-egg { transform-origin: 33.4% 45.2%; animation: egg-sizzle 2.6s ease-in-out infinite; }
+@keyframes egg-sizzle {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  25% { transform: translate(.5%, -1%) rotate(5deg); }
+  50% { transform: translate(-.3%, .6%) rotate(-3deg); }
+  75% { transform: translate(.2%, -.4%) rotate(3deg) scale(1.02); }
+}
+.wm-stick { transform-origin: 57.6% 23.4%; animation: stir 2.2s ease-in-out infinite alternate; }
+@keyframes stir { from { transform: rotate(-14deg); } to { transform: rotate(10deg); } }
+.hero-wordmark { display: block; height: clamp(56px, 16vw, 84px); margin: 12px auto 0; }
+@media (prefers-reduced-motion: reduce) {
+  .logo .mascot, .wm-egg, .wm-stick, .wm-carrot.hop, .wm-carrot.hop2 { animation: none; }
+}
+@media (prefers-color-scheme: dark) {
+  .logo .mascot, .hero-logo { mix-blend-mode: normal; background: #fffdf9; border-radius: 22%; }
+  .wm { background: #fffdf9; border-radius: 10px; box-sizing: content-box; padding: 2px 8px; }
+}
+
+/* 유튜브·인스타그램 작은 로고 */
+.inline-icon { display: inline-block; height: 1.05em; width: auto; vertical-align: -0.17em; margin-right: 4px; }
+.btn-icon { height: 1.1em; width: auto; flex-shrink: 0; }
+.src { display: inline-flex; align-items: center; margin-right: 10px; }
+.src .inline-icon { height: 1em; }
 .nav { display: flex; gap: 4px; }
 .nav a { display: flex; align-items: center; gap: 4px; padding: 8px 14px; border-radius: 999px; color: var(--text-2); font-weight: 700; white-space: nowrap; }
 .nav a.active, .nav a:hover { background: var(--primary-soft); color: var(--primary); }
@@ -194,7 +227,8 @@ code { background: var(--bg-soft); padding: 2px 6px; border-radius: 6px; }
   border: 2px solid var(--border); box-shadow: var(--shadow);
 }
 .import-box:focus-within { border-color: var(--primary); }
-.import-icon { font-size: 1.15rem; }
+.import-icon { display: inline-flex; gap: 3px; }
+.import-icon .inline-icon { height: 20px; margin: 0; }
 .import-box input { flex: 1; min-width: 0; border: none; outline: none; background: none; color: var(--text); font: inherit; font-size: 16px; min-height: 44px; }
 @media (max-width: 420px) { #paste-btn { display: none; } }
 .share-banner { margin: 0 0 14px; padding: 14px 18px; border-radius: 18px; background: var(--primary-soft); color: var(--primary); font-weight: 600; }
@@ -506,6 +540,6 @@ code { background: var(--bg-soft); padding: 2px 6px; border-radius: 6px; }
   .legal section { padding: 18px; }
 }
 @media (max-width: 400px) {
-  .logo img { width: 38px; height: 38px; }
-  .logo .wordmark { height: 28px; }
+  .logo img.mascot { width: 38px; height: 38px; }
+  .logo .wm { height: 28px; }
 }
