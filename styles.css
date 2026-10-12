@@ -1,5 +1,6 @@
 /* Repigram — 따뜻한 베이지 바탕, 진초록·올리브·크림·크림슨 / 모바일 우선, 큼직하고 귀엽게 */
 :root {
+  color-scheme: light;  /* 휴대폰이 다크 모드여도 항상 밝은 베이지 */
   --bg: #fbf5ea;            /* 따뜻한 베이지 (밝게) */
   --bg-soft: #f4ebdb;
   --surface: #fffdf9;       /* 카드: 크림 화이트 */
@@ -23,31 +24,6 @@
   --radius: 24px;
   --tabbar: 76px;
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #1b1a15;
-    --bg-soft: #24221b;
-    --surface: #27251e;
-    --cream: #2d2a22;
-    --text: #f1eadb;
-    --text-2: #d2c9b6;
-    --muted: #a39a87;
-    --primary: #a9bd86;
-    --primary-press: #bccd9c;
-    --primary-soft: #2f3826;
-    --olive: #c3c57c;
-    --olive-ink: #d2d48c;
-    --olive-soft: #33331f;
-    --accent: #ff5c78;
-    --accent-soft: #3d1c23;
-    --danger: #ff6b81;
-    --border: #3a362b;
-    --thumb: #302d24;
-    --shadow: 0 6px 22px rgba(0, 0, 0, 0.35);
-    --shadow-lg: 0 14px 38px rgba(0, 0, 0, 0.45);
-  }
-}
-
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 [hidden] { display: none !important; }
 html { -webkit-text-size-adjust: 100%; }
@@ -112,11 +88,6 @@ code { background: var(--bg-soft); padding: 2px 6px; border-radius: 6px; }
 @media (prefers-reduced-motion: reduce) {
   .logo .mascot, .wm-egg, .wm-stick, .wm-carrot.hop, .wm-carrot.hop2 { animation: none; }
 }
-@media (prefers-color-scheme: dark) {
-  .logo .mascot, .hero-logo { mix-blend-mode: normal; background: #fffdf9; border-radius: 22%; }
-  .wm { background: #fffdf9; border-radius: 10px; box-sizing: content-box; padding: 2px 8px; }
-}
-
 /* 유튜브·인스타그램 작은 로고 */
 .inline-icon { display: inline-block; height: 1.05em; width: auto; vertical-align: -0.17em; margin-right: 4px; }
 .btn-icon { height: 1.1em; width: auto; flex-shrink: 0; }
